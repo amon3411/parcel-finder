@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en" data-accent="indigo" data-mode="light">
+<script>/* apply saved theme before paint */
+try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T = {}; }
+(function(){ var m = T.mode||'auto'; if (m==='auto') m = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.mode = m; document.documentElement.dataset.accent = T.accent||'indigo'; })();
+</script>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>Parcel Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#4f6bff; --brand2:#7a5cff;
+    --bg:#f4f5f8; --surface:#ffffff; --surface2:#eef0f5; --line:#e3e6ee; --text:#11131a; --mute:#6b7183;
+    --ok:#16a34a; --okSoft:#dcf5e5; --warn:#d97706; --warnSoft:#fdf0d9;
+    --shadow:0 1px 2px rgba(16,20,40,.05),0 4px 16px rgba(16,20,40,.06);
+    --safeT:env(safe-area-inset-top,0px); --safeB:env(safe-area-inset-bottom,0px);
+  }
+  /* accent palettes */
+  [data-accent=indigo]{--brand:#4f6bff;--brand2:#7a5cff}
+  [data-accent=ocean]{--brand:#0284c7;--brand2:#06b6d4}
+  [data-accent=forest]{--brand:#059669;--brand2:#84cc16}
+  [data-accent=sunset]{--brand:#ea580c;--brand2:#e11d48}
+  [data-accent=rose]{--brand:#db2777;--brand2:#a855f7}
+  [data-accent=gold]{--brand:#b45309;--brand2:#eab308}
+  [data-accent=graphite]{--brand:#334155;--brand2:#64748b}
+  /* dark modes */
+  [data-mode=dark]{--bg:#0b0d12;--surface:#151821;--surface2:#1d212c;--line:#262b38;--text:#eef0f6;--mute:#8d93a5;--okSoft:#10301f;--warnSoft:#3a2a0e;--shadow:0 1px 2px rgba(0,0,0,.3)}
+  [data-mode=black]{--bg:#000;--surface:#0d0e11;--surface2:#17191e;--line:#1f2228;--text:#f2f3f7;--mute:#8a8f9c;--okSoft:#0c2a1a;--warnSoft:#33240b;--shadow:none}
+  [data-mode=dark][data-accent=graphite],[data-mode=black][data-accent=graphite]{--brand:#94a3b8;--brand2:#475569}
+  :root{--brandSoft:color-mix(in srgb,var(--brand) 14%,var(--surface));--ofd:var(--brand);--ofdSoft:color-mix(in srgb,var(--brand) 20%,var(--surface))}
+  html{transition:background .2s}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 Inter,system-ui,-apple-system,Roboto,sans-serif}
+  button{font:inherit;color:inherit}
+  a{color:inherit}
+
+  /* app bar */
+  .appbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    padding:calc(var(--safeT) + 12px) 18px 10px;display:flex;align-items:center;gap:12px}
+  .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;box-shadow:0 4px 12px color-mix(in srgb,var(--brand) 40%,transparent);flex:none}
+  .appbar h1{font-size:19px;font-weight:800;letter-spacing:-.3px;margin:0;line-height:1.1}
+  .appbar .sub{font-size:12px;color:var(--mute);margin-top:1px}
+  .iconbtn{margin-left:auto;width:40px;height:40px;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow);display:grid;place-items:center;cursor:pointer}
+  .iconbtn:disabled{opacity:.45}
+  .iconbtn.busy svg{animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .progress{position:absolute;left:0;bottom:0;height:2px;background:var(--brand);width:0;transition:width .3s;opacity:0}
+  body.syncing .progress{opacity:1}
+
+  main{max-width:560px;margin:0 auto;padding:4px 16px calc(var(--safeB) + 96px)}
+  .view{display:none} .view.on{display:block;animation:fade .2s}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}}
+
+  /* hero */
+  .hero{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-radius:22px;padding:18px 18px 16px;margin:6px 0 18px;box-shadow:0 10px 30px color-mix(in srgb,var(--brand) 30%,transparent);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.09)}
+  .hero .k{font-size:13px;opacity:.85;font-weight:500}
+  .hero .big{font-size:30px;font-weight:800;letter-spacing:-.6px;margin:2px 0 10px}
+  .stats{display:flex;gap:8px}
+  .stat{flex:1;background:rgba(255,255,255,.15);border-radius:13px;padding:8px 10px}
+  .stat b{display:block;font-size:18px;font-weight:700}
+  .stat span{font-size:11.5px;opacity:.85}
+
+  .seg{display:flex;background:var(--surface2);border-radius:12px;padding:3px;margin-bottom:14px}
+  .seg button{flex:1;border:0;background:transparent;padding:8px 6px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--mute);cursor:pointer}
+  .seg button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+  .sectionlabel{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin:16px 4px 8px}
+
+  /* package card */
+  .pkg{background:var(--surface);border-radius:18px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s}
+  .pkg:active{transform:scale(.99)}
+  .pkg .row1{display:flex;gap:12px;align-items:center}
+  .avatar{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;letter-spacing:.2px;flex:none}
+  .pkg .t{font-weight:650;font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .pkg .m{font-size:12.5px;color:var(--mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;margin-left:auto;align-self:flex-start;background:var(--brandSoft);color:var(--brand)}
+  .chip.ofd{background:var(--ofdSoft);color:var(--ofd)} .chip.done{background:var(--okSoft);color:var(--ok)} .chip.late{background:var(--warnSoft);color:var(--warn)}
+  .eta{display:flex;align-items:baseline;gap:8px;margin:12px 0 10px}
+  .eta .d{font-size:17px;font-weight:750;letter-spacing:-.2px}
+  .eta .sub{font-size:12.5px;color:var(--mute)}
+  .est{font-size:10.5px;font-weight:700;color:var(--mute);background:var(--surface2);border-radius:5px;padding:2px 6px;text-transform:uppercase;letter-spacing:.3px}
+  .tl{position:relative;display:flex;justify-content:space-between;margin:4px 2px 2px}
+  .tl::before{content:"";position:absolute;left:6px;right:6px;top:5px;height:3px;background:var(--surface2);border-radius:2px}
+  .tl .fill{position:absolute;left:6px;top:5px;height:3px;background:var(--brand);border-radius:2px;transition:width .4s}
+  .pkg.delivered .tl .fill,.pkg.delivered .tl .dot.on{background:var(--ok)}
+  .tl .stop{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:25%}
+  .tl .stop:first-child{align-items:flex-start} .tl .stop:last-child{align-items:flex-end}
+  .tl .dot{width:13px;height:13px;border-radius:50%;background:var(--surface2);border:3px solid var(--surface)}
+  .tl .dot.on{background:var(--brand)}
+  .tl .lbl{font-size:10.5px;color:var(--mute);font-weight:600}
+  .tl .lbl.on{color:var(--text)}
+  .more{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .pkg.open .more{display:block}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px;margin-bottom:12px}
+  .kv dt{color:var(--mute)} .kv dd{margin:0;word-break:break-all}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{appearance:none;border:0;border-radius:12px;padding:10px 14px;font-size:13.5px;font-weight:600;background:var(--surface2);text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.full{width:100%;justify-content:center;padding:13px}
+  .btn.danger{color:#dc2626}
+  .btn:disabled{opacity:.5}
+
+  .empty{text-align:center;padding:36px 20px;color:var(--mute)}
+  .empty .ill{width:84px;height:84px;border-radius:26px;background:var(--brandSoft);display:grid;place-items:center;margin:0 auto 14px}
+  .empty b{display:block;color:var(--text);font-size:16px;margin-bottom:4px}
+
+  /* lists / settings */
+  .group{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+  .item{display:flex;align-items:center;gap:12px;padding:14px;border-top:1px solid var(--line)}
+  .item:first-child{border-top:0}
+  .item .grow{flex:1;min-width:0}
+  .item .t{font-weight:600;font-size:14.5px}
+  .item .m{font-size:12.5px;color:var(--mute)}
+  select{appearance:none;background:var(--surface2);border:0;border-radius:10px;padding:8px 12px;font:inherit;font-size:13.5px;color:var(--text)}
+  textarea{width:100%;min-height:150px;background:var(--surface2);color:var(--text);border:0;border-radius:14px;padding:12px;font:14px/1.45 Inter,system-ui,sans-serif;resize:vertical;outline:none}
+  .drop{border:1.5px dashed var(--line);border-radius:14px;padding:14px;text-align:center;color:var(--mute);font-size:13.5px;margin:10px 0}
+  .drop.over{border-color:var(--brand);color:var(--text)}
+  .drop label{color:var(--brand);font-weight:600;cursor:pointer}
+
+  /* bottom nav */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 8px calc(var(--safeB) + 6px)}
+  .nav .in{display:flex;max-width:560px;width:100%}
+  .nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:11.5px;font-weight:600;color:var(--mute);cursor:pointer}
+  .nav button .pillicon{width:56px;height:30px;border-radius:16px;display:grid;place-items:center;transition:background .2s}
+  .nav button.on{color:var(--text)}
+  .nav button.on .pillicon{background:var(--brandSoft);color:var(--brand)}
+  .badge{position:absolute;margin:-18px 0 0 22px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px}
+
+  .sub .avatar{width:40px;height:40px;border-radius:50%;font-size:15px}
+  .sub .cnt{font-size:12px;font-weight:700;background:var(--surface2);border-radius:20px;padding:3px 9px;white-space:nowrap}
+  .sub .more2{display:none;padding:0 14px 14px 66px;gap:8px;flex-wrap:wrap}
+  .sub.open .more2{display:flex}
+  .sub .subj{font-size:12.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .subrow{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+  .subrow .grow{flex:1} .subrow .t{font-weight:650;font-size:14.5px}
+  .sub+.sub{border-top:1px solid var(--line)}
+  #subSeg button{font-size:12.5px;padding:8px 2px}
+  .swatches{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+  .sw{display:block;width:100%;max-width:40px;margin:0 auto;aspect-ratio:1;padding:0;border-radius:50%;border:0;cursor:pointer;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+  .sw.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2.5px solid var(--text)}
+  .sw-name{font-size:11px;color:var(--mute);text-align:center;margin-top:4px}
+  .preview{border-radius:16px;background:var(--bg);padding:12px;border:1px solid var(--line)}
+  .pv-hero{height:58px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand2));padding:10px;display:flex;flex-direction:column;gap:6px}
+  .pv-hero span{width:40%;height:7px;border-radius:4px;background:rgba(255,255,255,.55)}
+  .pv-hero b{width:60%;height:13px;border-radius:5px;background:#fff}
+  .pv-card{margin-top:8px;background:var(--surface);border-radius:12px;padding:10px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow)}
+  .pv-card i{width:28px;height:28px;border-radius:8px;background:var(--brand)}
+  .pv-card div{flex:1;display:flex;flex-direction:column;gap:5px}
+  .pv-card b{width:70%;height:8px;border-radius:4px;background:var(--text);opacity:.8}
+  .pv-card span{width:45%;height:6px;border-radius:4px;background:var(--mute);opacity:.6}
+  .pv-card em{width:42px;height:16px;border-radius:9px;background:var(--brandSoft)}
+  .about{text-align:center;padding:18px 0 6px;color:var(--mute);font-size:12.5px}
+  .about b{display:block;color:var(--text);font-size:15px}
+  .skel{background:var(--surface);border-radius:18px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+  .skel div{background:linear-gradient(90deg,var(--surface2),color-mix(in srgb,var(--surface2) 40%,var(--surface)),var(--surface2));background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px}
+  @keyframes shimmer{to{background-position:-200% 0}}
+  .cta{margin-top:16px}
+  .search{flex:1;min-width:0;background:var(--surface);border:0;border-radius:12px;padding:11px 14px;font:inherit;font-size:14px;color:var(--text);box-shadow:var(--shadow);outline:none}
+  .chips{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 10px;padding:0 16px 2px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chips button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:7px 13px;font-size:13px;font-weight:600;color:var(--mute);cursor:pointer}
+  .chips button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .month{display:flex;justify-content:space-between;align-items:baseline;margin:16px 4px 8px;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}
+  .month b{color:var(--text);letter-spacing:0;font-size:13px}
+  .rc{border-top:1px solid var(--line)} .rc:first-child{border-top:0}
+  .rc .subrow .amt{font-weight:750;font-size:15px;white-space:nowrap}
+  .rc .more2{display:none;padding:0 14px 14px 66px;flex-direction:column;gap:10px}
+  .rc.open .more2{display:flex}
+  .catic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;flex:none}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:.2s;z-index:10}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 20px calc(var(--safeB) + 20px);transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+  .sheet.on{transform:none}
+  .sheet .grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+  .sheet h3{margin:0 0 4px;font-size:19px;font-weight:800}
+  .sheet p{margin:0 0 14px;color:var(--mute);font-size:13.5px}
+  .opt{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+  .opt input{width:20px;height:20px;accent-color:var(--brand);margin-top:1px;flex:none}
+  .opt small{display:block;color:var(--mute);font-size:12.5px;margin-top:2px}
+  .stepline{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14px}
+  .stepline .ic{width:22px;text-align:center}
+  .blk{font-size:10.5px;font-weight:700;color:#dc2626;background:rgba(220,38,38,.1);border-radius:5px;padding:2px 6px;margin-left:6px;vertical-align:2px}
+  .toast{position:fixed;left:50%;bottom:calc(var(--safeB) + 86px);transform:translate(-50%,10px);background:#1d212c;color:#fff;padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:500;opacity:0;transition:.2s;pointer-events:none;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/><path d="m7.5 5.8 9 5.4" opacity=".7"/></svg></div>
+  <div><h1>Parcel Finder</h1><div class="sub" id="lastRefresh">Your deliveries</div></div>
+  <button class="iconbtn" id="addBtn" aria-label="Add from email" style="margin-left:auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="iconbtn" id="refresh" style="margin-left:0" disabled aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+  <div class="progress" id="progress"></div>
+</header>
+
+<main>
+  <!-- DELIVERIES -->
+  <section class="view on" id="v-home">
+    <div class="hero" id="hero"></div>
+    <div class="seg" id="seg">
+      <button class="on" data-f="active">On the way</button>
+      <button data-f="delivered">Delivered</button>
+      <button data-f="orders">Orders</button>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <!-- ADD -->
+  <section class="view" id="v-add">
+    <div class="sectionlabel">Add from an email</div>
+    <div class="group" style="padding:14px">
+      <textarea id="input" placeholder="Paste a shipping or order email…"></textarea>
+      <div class="drop" id="drop">Drop .eml or .txt files, or <label for="file">browse</label>
+        <input type="file" id="file" multiple accept=".eml,.txt,.html,.htm,message/rfc822,text/*" hidden></div>
+      <button class="btn primary full" id="scan">Find packages</button>
+      <div style="text-align:center;margin-top:10px"><button class="btn" id="demo" style="background:none;color:var(--brand)">Try a sample email</button></div>
+    </div>
+  </section>
+
+  <!-- RECEIPTS -->
+  <section class="view" id="v-rcpt">
+    <div class="hero">
+      <div class="k" id="rcK">Spent this month</div>
+      <div class="big" id="rcBig">$0.00</div>
+      <div class="stats">
+        <div class="stat"><b id="rcCount">0</b><span>Receipts</span></div>
+        <div class="stat"><b id="rcLast">$0</b><span>Last month</span></div>
+        <div class="stat"><b id="rcTop">—</b><span>Top store</span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="rcSearch" class="search" placeholder="Search stores, items, order #…">
+      <button class="btn primary" id="rcScan" disabled>Scan</button>
+    </div>
+    <div class="chips" id="rcCats"></div>
+    <div class="meta" id="rcStatus" style="margin:0 4px 10px;font-size:12.5px;color:var(--mute)"></div>
+    <div id="rcList"></div>
+    <div style="text-align:center;margin-top:6px"><button class="btn" id="rcCopy" style="background:none;color:var(--brand)">Copy as spreadsheet</button></div>
+  </section>
+
+  <!-- SUBSCRIPTIONS -->
+  <section class="view" id="v-subs">
+    <div class="hero" style="background:linear-gradient(135deg,var(--brand2),var(--brand))">
+      <div class="k">Email subscriptions</div>
+      <div class="big" id="subBig">—</div>
+      <div class="stats">
+        <div class="stat"><b id="subEmails">0</b><span>Emails (90 days)</span></div>
+        <div class="stat"><b id="subTop">—</b><span>Most frequent</span></div>
+      </div>
+    </div>
+    <div class="row" style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="subSearch" class="search" placeholder="Search senders…">
+      <button class="btn primary" id="subScan" disabled>Scan</button>
+    </div>
+    <div class="seg" id="subSeg">
+      <button class="on" data-c="all">All</button>
+      <button data-c="CATEGORY_PROMOTIONS">Promos</button>
+      <button data-c="CATEGORY_UPDATES">Updates</button>
+      <button data-c="CATEGORY_SOCIAL">Social</button>
+      <button data-c="blocked">Blocked</button>
+    </div>
+    <div class="meta" id="subStatus" style="margin:0 4px 10px;font-size:12.5px;color:var(--mute)"></div>
+    <div id="subList"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="v-acct">
+    <div class="sectionlabel">Appearance</div>
+    <div class="group" style="padding:16px">
+      <div class="preview" id="themePreview">
+        <div class="pv-hero"><span></span><b></b></div>
+        <div class="pv-card"><i></i><div><b></b><span></span></div><em></em></div>
+      </div>
+      <div class="t" style="font-weight:650;margin:16px 0 10px">Color</div>
+      <div class="swatches" id="swatches"></div>
+      <div class="t" style="font-weight:650;margin:18px 0 10px">Mode</div>
+      <div class="seg" id="modeSeg" style="margin:0">
+        <button data-m="auto">Auto</button><button data-m="light">Light</button><button data-m="dark">Dark</button><button data-m="black">Black</button>
+      </div>
+    </div>
+    <div class="sectionlabel">Email account</div>
+    <div class="group">
+      <div class="item">
+        <div class="avatar" style="background:#ea4335;width:38px;height:38px;border-radius:11px">G</div>
+        <div class="grow"><div class="t">Gmail</div><div class="m" id="gStatus">Checking…</div></div>
+        <select id="gRange"><option value="14">2 weeks</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
+      </div>
+      <div class="item"><button class="btn primary full" id="gScan" disabled>Scan inbox</button></div>
+      <div class="item" id="gHint" hidden><div class="m">Open Parcel Finder inside the Claude app with Gmail connected to scan your inbox.</div></div>
+    </div>
+    <div class="sectionlabel">Stores</div>
+    <div class="group">
+      <div class="item"><div class="avatar" style="background:#d27b00;width:38px;height:38px;border-radius:11px">AM</div><div class="grow"><div class="t">Amazon</div><div class="m">Read from order emails in Gmail</div></div></div>
+      <div class="item"><div class="avatar" style="background:#0071ce;width:38px;height:38px;border-radius:11px">WM</div><div class="grow"><div class="t">Walmart</div><div class="m">Read from order emails in Gmail</div></div></div>
+    </div>
+    <div class="sectionlabel">Data</div>
+    <div class="group">
+      <div class="item"><div class="grow"><div class="t">Copy all tracking numbers</div></div><button class="btn" id="copyAll">Copy</button></div>
+      <div class="item"><div class="grow"><div class="t">Clear all packages</div><div class="m">Removes everything saved on this device</div></div><button class="btn danger" id="wipe">Clear</button></div>
+    </div>
+    <div class="sectionlabel">Backup</div>
+    <div class="group">
+      <div class="item"><div class="grow"><div class="t">Back up my data</div><div class="m">Copies a backup code you can save anywhere</div></div><button class="btn" id="bkCopy">Copy</button></div>
+      <div class="item"><div class="grow"><div class="t">Restore from backup</div><div class="m">Paste a backup code to bring everything back</div></div><button class="btn" id="bkRestore">Restore</button></div>
+    </div>
+    <div class="sectionlabel">Updates</div>
+    <div class="group">
+      <div class="item"><div class="grow"><div class="t">What's new</div><div class="m" id="verLine"></div></div><button class="btn" id="whatsNew">View</button></div>
+    </div>
+    <div class="about">
+      <div class="logo" style="margin:0 auto 10px;width:48px;height:48px;border-radius:14px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg></div>
+      <b>Parcel Finder</b><span id="aboutVer"></span>
+    </div>
+  </section>
+</main>
+
+<nav class="nav"><div class="in">
+  <button class="on" data-v="home"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg></span>Deliveries<span class="badge" id="navBadge" hidden></span></button>
+  <button data-v="rcpt"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span>Receipts</button>
+  <button data-v="subs"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H5.2L4 17.5z"/><path d="M8 8h8M8 12h5"/></svg></span>Subscriptions</button>
+  <button data-v="acct"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>Settings</button>
+</div></nav>
+<div class="toast" id="toast"></div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"></div>
+
+<script>
+
+const CARRIERS = {
+  UPS:    {color:'#6b4a2b', url:n=>`https://www.ups.com/track?tracknum=${n}`},
+  USPS:   {color:'#2f5aa8', url:n=>`https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}`},
+  FedEx:  {color:'#4d148c', url:n=>`https://www.fedex.com/fedextrack/?trknbr=${n}`},
+  DHL:    {color:'#c99a00', url:n=>`https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id=${n}`},
+  Amazon: {color:'#d27b00', url:()=>`https://www.amazon.com/gp/css/order-history`},
+  OnTrac: {color:'#0a7d4f', url:n=>`https://www.ontrac.com/tracking/?number=${n}`},
+  LaserShip:{color:'#0a7d4f', url:n=>`https://www.ontrac.com/tracking/?number=${n}`},
+  Walmart:{color:'#0071ce', url:n=>`https://www.walmart.com/orders/${n}`},
+  AmazonOrder:{color:'#d27b00', url:n=>`https://www.amazon.com/gp/your-account/order-details?orderID=${n}`},
+  'Intl Post': {color:'#5a6170', url:n=>`https://parcelsapp.com/en/tracking/${n}`},
+  Other:  {color:'#5a6170', url:n=>`https://parcelsapp.com/en/tracking/${n}`}
+};
+const STATUSES = ['Ordered','Label created','Shipped','In transit','Out for delivery','Delivered'];
+const STEP = {'Ordered':1,'Label created':1,'Shipped':2,'In transit':3,'Delayed':3,'Exception':3,'Out for delivery':4,'Delivered':5};
+const SHIP_WORDS = /(track|tracking|shipment|shipped|package|parcel|fedex|dhl|ups|usps|delivery|carrier|waybill|airbill)/i;
+
+const PATTERNS = [
+  [/\b1Z[0-9A-Z]{16}\b/g, 'UPS', false],
+  [/\bTBA\d{12}\b/g, 'Amazon', false],
+  [/\b9[2-5]\d{18,24}\b/g, 'USPS', false],
+  [/\b420\d{5}9[2-5]\d{20}\b/g, 'USPS', false],
+  [/\b[A-Z]{2}\d{9}US\b/g, 'USPS', false],
+  [/\b[A-Z]{2}\d{9}(?!US)[A-Z]{2}\b/g, 'Intl Post', true],
+  [/\b[CD]\d{14}\b/g, 'OnTrac', true],
+  [/\b(?:96\d{20}|\d{15}|\d{12})\b/g, 'FedEx', true],
+  [/\bJJD\d{18}\b|\b\d{10}\b/g, 'DHL', true],
+];
+
+// ---------- storage ----------
+let store = load();   // {num, carrier, title, merchant, status, eta, order, items, source, link, emailDate, added}
+let orders = loadKey('pfOrders', []); // {order, merchant, title, source, link, emailDate}
+function loadKey(k, d){ try{ return JSON.parse(localStorage.getItem(k)||'null') ?? d; }catch(e){ return d; } }
+function load(){
+  const s = loadKey('parcelFinder2', null);
+  if (s) return s;
+  // migrate v1 list
+  return loadKey('parcelFinder', []).filter(x=>x.carrier!=='Order').map(x=>({num:x.num,carrier:x.carrier,title:x.label,merchant:x.from,status:x.done?'Delivered':'Shipped',eta:'',source:x.source||'Pasted',link:x.link||'',emailDate:x.added,added:x.added}));
+}
+function save(){ try{ localStorage.setItem('parcelFinder2', JSON.stringify(store)); localStorage.setItem('pfOrders', JSON.stringify(orders)); }catch(e){} }
+
+// ---------- email decoding ----------
+function decodeQP(s){ return s.replace(/=\r?\n/g,'').replace(/=([0-9A-F]{2})/gi,(_,h)=>String.fromCharCode(parseInt(h,16))); }
+function decodeEmail(raw){
+  let out = raw.replace(/Content-Transfer-Encoding:\s*base64[^\n]*\n(?:[^\n]*\n)*?\r?\n([A-Za-z0-9+/=\r\n]{40,})/gi,(m,b)=>{
+    try{ const bin = atob(b.replace(/\s+/g,'')); return m + '\n' + new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); }catch(e){ return m; }
+  });
+  if (/quoted-printable/i.test(out) || /=\r?\n/.test(out)) out = decodeQP(out);
+  return out;
+}
+function stripHtml(s){
+  return s.replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<script[\s\S]*?<\/script>/gi,' ')
+          .replace(/<br\s*\/?>|<\/p>|<\/tr>|<\/div>/gi,'\n').replace(/<[^>]+>/g,' ')
+          .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#\d+;/g,' ').replace(/[ \t]+/g,' ');
+}
+function header(raw, name){
+  const m = raw.match(new RegExp('^'+name+':\\s*(.+)$','im'));
+  return m ? m[1].trim().replace(/=\?[^?]+\?[QB]\?([^?]*)\?=/gi,(_,t)=>t.replace(/_/g,' ')) : '';
+}
+function prettyDomain(d){
+  d = (d||'').toLowerCase().replace(/^(mail|email|e|info|ship|shipping|orders?|noreply|no-reply|transaction|em|t|m)\./,'');
+  const base = d.split('.').slice(-2,-1)[0] || d;
+  return base ? base.charAt(0).toUpperCase()+base.slice(1) : '';
+}
+
+// ---------- regex extraction (always runs) ----------
+function regexTracking(text){
+  const found = new Map();
+  for (const [re, carrier, needsCtx] of PATTERNS){
+    re.lastIndex = 0; let m;
+    while ((m = re.exec(text))){
+      const n = m[0];
+      if ([...found.keys()].some(k=>k.includes(n))) continue;
+      if (needsCtx){
+        const ctx = text.slice(Math.max(0,m.index-120), m.index+20);
+        if (!SHIP_WORDS.test(ctx)) continue;
+        if (/(phone|tel|call|fax|zip|account|invoice)\W{0,15}$/i.test(text.slice(Math.max(0,m.index-25), m.index))) continue;
+        if (carrier==='DHL' && !/dhl/i.test(ctx)) continue;
+      }
+      found.set(n, carrier);
+    }
+  }
+  return found;
+}
+function regexOrders(text){
+  const out = new Set(); let m;
+  const res = [/\b\d{3}-\d{7}-\d{7}\b/g, /order\s*(?:#|number|no\.?|id)\s*[:#]?\s*#?\s*([A-Z0-9][A-Z0-9-]{4,24})\b/gi];
+  for (const re of res){ while ((m = re.exec(text))){ const n=(m[1]||m[0]).toUpperCase(); if (/\d/.test(n)) out.add(n); } }
+  return [...out];
+}
+function regexStatus(text){
+  if (/out for delivery/i.test(text)) return 'Out for delivery';
+  if (/(has been|was|been) delivered|delivered today|package delivered|your (package|order|item)s? (was |has been )?delivered/i.test(text)) return 'Delivered';
+  if (/delay|exception|running late/i.test(text)) return 'Delayed';
+  if (/in transit/i.test(text)) return 'In transit';
+  if (/shipped|on (its|the) way|has left|dispatched/i.test(text)) return 'Shipped';
+  if (/label (created|has been created)|preparing (your|for) shipment/i.test(text)) return 'Label created';
+  return 'Shipped';
+}
+const MONTHS = 'jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec';
+function regexEta(text, ref){
+  const re = new RegExp(`(arriv\\w*|estimated delivery|expected delivery|delivery date|deliver(?:y|ed)? by|get it by|scheduled delivery)[^\\n]{0,40}?\\b(${MONTHS})\\w*\\.?\\s+(\\d{1,2})`,'i');
+  const m = text.match(re);
+  if (!m){
+    const base = new Date(ref||Date.now());
+    if (/(arriv\w*|deliver\w*)\s+(by\s+)?today/i.test(text)) return base.toISOString().slice(0,10);
+    if (/(arriv\w*|deliver\w*)\s+(by\s+)?tomorrow/i.test(text)){ base.setDate(base.getDate()+1); return base.toISOString().slice(0,10); }
+    const w = text.match(/(arriv\w*|deliver\w*|get it)\s+(by\s+|on\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/i);
+    if (w){ const want = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].indexOf(w[3].toLowerCase());
+      for (let i=0;i<7;i++){ if (base.getDay()===want) return base.toISOString().slice(0,10); base.setDate(base.getDate()+1); } }
+    return '';
+  }
+  const mo = MONTHS.split('|').indexOf(m[2].toLowerCase().slice(0,3));
+  const base = new Date(ref||Date.now());
+  let d = new Date(base.getFullYear(), mo, +m[3]);
+  if (d - base < -60*864e5) d = new Date(base.getFullYear()+1, mo, +m[3]);
+  return d.toISOString().slice(0,10);
+}
+
+// ---------- Claude extraction (when available) ----------
+let sample = null, mcp = null;
+async function aiExtract(text, meta){
+  if (!sample) return null;
+  const prompt = `You extract shipment info from one email. Today is ${new Date().toISOString().slice(0,10)}; the email was sent ${meta.date||'recently'}.
+Return ONLY JSON: {"merchant": string|null, "items": string|null (short product names, max 80 chars), "order": string|null,
+ "status": order-level status (same choices as below) or null, "eta": "YYYY-MM-DD"|null (order-level, for emails with no tracking number),
+ "shipments":[{"tracking": string, "carrier": "UPS"|"USPS"|"FedEx"|"DHL"|"Amazon"|"OnTrac"|"LaserShip"|"Other",
+   "status": "Ordered"|"Label created"|"Shipped"|"In transit"|"Out for delivery"|"Delivered"|"Delayed",
+   "eta": "YYYY-MM-DD"|null}]}
+For "eta" use the delivery date or the LATEST date of a delivery window the email states (e.g. "arriving Nov 24-26" -> the 26th); if the email says "today"/"tomorrow", convert using the sent date. If delivered, eta = delivery date.
+Use only tracking numbers that literally appear in the email. If there is no tracking number, return "shipments": [].
+Subject: ${meta.subject||''}
+From: ${meta.from||''}
+---
+${text.slice(0,7000)}`;
+  try{ return await sample.json(prompt, {modelTier:'quick'}); }
+  catch(e){ if (e && (e.code==='not_granted')) sample = null; return null; }
+}
+
+// typical business-day transit when the email gives no date
+const TRANSIT = {AmazonOrder:[1,3], Walmart:[1,4], UPS:[1,5], FedEx:[1,5], USPS:[2,5], Amazon:[1,3], DHL:[2,6], OnTrac:[1,3], LaserShip:[1,3], 'Intl Post':[7,21], Other:[3,8]};
+function addBiz(date, n){ const d = new Date(date); d.setHours(12,0,0,0); while (n>0){ d.setDate(d.getDate()+1); if (d.getDay()%6) n--; } return d; }
+function estimate(it){
+  if (it.eta || it.status==='Delivered') return null;
+  const today = new Date(); today.setHours(12,0,0,0);
+  if (it.status==='Out for delivery') return {from:today, to:today};
+  const [a,b] = TRANSIT[it.carrier] || TRANSIT.Other;
+  const shipped = new Date(it.emailDate || it.added);
+  let from = addBiz(shipped, it.status==='Label created'||it.status==='Ordered' ? a+1 : a);
+  let to = addBiz(shipped, it.status==='Label created'||it.status==='Ordered' ? b+1 : b);
+  if (it.status==='Delayed') to = addBiz(to, 2);
+  if (to < today) return {from:today, to:today, late:true};
+  if (from < today) from = today;
+  return {from, to};
+}
+function sortDate(it){ if (it.eta) return it.eta; const e = estimate(it); return e ? e.from.toISOString().slice(0,10) : '9999'; }
+
+function rank(s){ return {'Out for delivery':0,'Delayed':1,'In transit':2,'Shipped':3,'Label created':4,'Ordered':5,'Delivered':9}[s] ?? 5; }
+
+function upsert(rec){
+  const ex = store.find(s=>s.num===rec.num);
+  if (!ex){ store.unshift({...rec, added:Date.now()}); return 1; }
+  const newer = (rec.emailDate||0) >= (ex.emailDate||0);
+  for (const k of ['title','merchant','items','order','link','carrier']) if (rec[k] && (!ex[k] || newer && k==='link')) ex[k]=rec[k];
+  if (newer){ if (rec.status) ex.status = rec.status; if (rec.eta) ex.eta = rec.eta; ex.emailDate = rec.emailDate; }
+  return 0;
+}
+
+async function processEmail(raw, meta){
+  const decoded = decodeEmail(raw);
+  const plain = stripHtml(decoded);
+  const scanTextAll = decoded + '\n' + plain;
+  meta.subject = meta.subject || header(raw,'Subject');
+  const fromHdr = header(raw,'From');
+  meta.from = meta.from || fromHdr;
+  const fromDomain = (meta.from.match(/@([\w.-]+)/)||[])[1] || '';
+  const emailDate = meta.date ? Date.parse(meta.date) : (Date.parse(header(raw,'Date')) || Date.now());
+
+  const rx = regexTracking(scanTextAll);
+  const ai = await aiExtract(plain.length > 200 ? plain : scanTextAll, {...meta, date:new Date(emailDate).toISOString().slice(0,10)});
+  const merchant = (ai && ai.merchant) || prettyDomain(fromDomain);
+  const title = (ai && ai.items) || meta.subject || 'Package';
+  const squash = s=>String(s||'').replace(/[\s-]/g,'').toUpperCase();
+  const textSquashed = squash(scanTextAll);
+
+  const shipments = new Map();
+  if (ai && Array.isArray(ai.shipments)){
+    for (const s of ai.shipments){
+      const n = squash(s.tracking);
+      if (n.length < 8 || !textSquashed.includes(n)) continue; // reject anything not in the email
+      shipments.set(n, {carrier: CARRIERS[s.carrier] ? s.carrier : (rx.get(n)||'Other'), status: STATUSES.includes(s.status)||s.status==='Delayed' ? s.status : '', eta: /^\d{4}-\d{2}-\d{2}$/.test(s.eta||'') ? s.eta : ''});
+    }
+  }
+  for (const [n,c] of rx) if (!shipments.has(n)) shipments.set(n, {carrier:c});
+
+  let added = 0;
+  const fallbackStatus = regexStatus(plain), fallbackEta = regexEta(plain, emailDate);
+  for (const [num, s] of shipments){
+    added += upsert({num, carrier:s.carrier, title, merchant, items: ai&&ai.items||'', order: ai&&ai.order||'',
+      status: s.status || fallbackStatus, eta: s.eta || fallbackEta, source: meta.source, link: meta.link||'', emailDate});
+  }
+  // orders with no tracking yet
+  const ordNums = ai && ai.order ? [String(ai.order).toUpperCase()] : regexOrders(plain);
+  const retailer = /amazon/i.test(fromDomain+merchant) ? 'AmazonOrder' : /walmart/i.test(fromDomain+merchant) ? 'Walmart' : '';
+  const st = (ai && ai.status) || regexStatus(plain);
+  const shipSignal = /shipped|on (its|the) way|out for delivery|delivered|arriving|in transit/i.test(plain + ' ' + meta.subject);
+  if (!shipments.size && ordNums.length && shipSignal){
+    // no tracking number in the email (common for Amazon & Walmart) — track by order number
+    const o = ordNums[0];
+    const eta = (ai && /^\d{4}-\d{2}-\d{2}$/.test(ai.eta||'') && ai.eta) || fallbackEta;
+    added += upsert({num:o, isOrder:true, carrier: retailer || 'Other', title, merchant, items: ai&&ai.items||'', order:o,
+      status: st, eta, source: meta.source, link: meta.link||'', emailDate});
+    orders = orders.filter(x=>x.order!==o);
+    return {added, found:1};
+  }
+  if (!shipments.size){
+    for (const o of ordNums){
+      if (store.some(s=>s.order && s.order.toUpperCase()===o) || orders.some(x=>x.order===o)) continue;
+      orders.unshift({order:o, merchant, title, source:meta.source, link:meta.link||'', emailDate});
+    }
+  } else {
+    // a tracking email arrived for this order — drop it from the waiting list
+    orders = orders.filter(x=>!ordNums.includes(x.order));
+    store = store.filter(x=>!(x.isOrder && ordNums.includes(String(x.num).toUpperCase())));
+  }
+  return {added, found: shipments.size};
+}
+
+
+// ---------- UI ----------
+const AV = {UPS:'UPS',USPS:'USPS',FedEx:'FDX',DHL:'DHL',Amazon:'AMZ',AmazonOrder:'AMZ',Walmart:'WM',OnTrac:'OT',LaserShip:'LS','Intl Post':'POST',Other:'PKG'};
+const NAME = c=>c==='AmazonOrder'?'Amazon':c;
+let filter = 'active', openId = null;
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function setProgress(f){ document.getElementById('progress').style.width = Math.round(f*100)+'%'; }
+const fmtDay = d=>d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+function today12(){ const t=new Date(); t.setHours(12,0,0,0); return t; }
+
+function etaInfo(it){
+  const st = it.status||'Shipped';
+  if (st==='Delivered') return {d:'Delivered', sub: it.eta ? fmtDay(new Date(it.eta+'T12:00:00')) : ''};
+  if (it.eta){
+    const d = new Date(it.eta+'T12:00:00'), diff = Math.round((d-today12())/864e5);
+    if (diff===0) return {d:'Today', sub:fmtDay(d)};
+    if (diff===1) return {d:'Tomorrow', sub:fmtDay(d)};
+    if (diff>1 && diff<7) return {d:d.toLocaleDateString(undefined,{weekday:'long'}), sub:d.toLocaleDateString(undefined,{month:'short',day:'numeric'})};
+    if (diff<0) return {d:fmtDay(d), sub:'Past expected date', late:true};
+    return {d:fmtDay(d), sub:''};
+  }
+  if (st==='Out for delivery') return {d:'Today', sub:'Out for delivery'};
+  const e = estimate(it); if (!e) return {d:'—', sub:''};
+  if (e.late) return {d:'Any day now', sub:'', est:true};
+  if (+e.from===+e.to) return {d:+e.from===+today12()?'Today':fmtDay(e.from), sub:'', est:true};
+  return {d:`${e.from.toLocaleDateString(undefined,{month:'short',day:'numeric'})} – ${e.to.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`, sub:'', est:true};
+}
+
+function render(){
+  const sorted = [...store].sort((a,b)=> rank(a.status)-rank(b.status) || sortDate(a).localeCompare(sortDate(b)) || (b.emailDate||0)-(a.emailDate||0));
+  const active = sorted.filter(s=>s.status!=='Delivered'), delivered = sorted.filter(s=>s.status==='Delivered').reverse();
+
+  // hero
+  const t = today12(), wk = new Date(t); wk.setDate(wk.getDate()+7);
+  const todayCount = active.filter(s=>s.status==='Out for delivery' || s.eta===t.toISOString().slice(0,10)).length;
+  const weekCount = active.filter(s=>{ const d=sortDate(s); return d!=='9999' && new Date(d+'T12:00:00')<=wk; }).length;
+  const next = active[0];
+  document.getElementById('hero').innerHTML = `
+    <div class="k">${active.length ? 'Next delivery' : 'All caught up'}</div>
+    <div class="big">${next ? esc(etaInfo(next).d) : 'No packages'}</div>
+    <div class="stats">
+      <div class="stat"><b>${active.length}</b><span>On the way</span></div>
+      <div class="stat"><b>${todayCount}</b><span>Today</span></div>
+      <div class="stat"><b>${weekCount}</b><span>This week</span></div>
+    </div>`;
+  const nb = document.getElementById('navBadge'); nb.hidden = !active.length; nb.textContent = active.length;
+
+  const box = document.getElementById('list'); box.innerHTML = '';
+  if (filter==='orders') return renderOrders(box);
+  const list = filter==='active' ? active : delivered;
+  if (!list.length && document.body.classList.contains('syncing') && !store.length){
+    box.innerHTML = [0,1,2].map(()=>`<div class="skel"><div style="height:44px;width:60%"></div><div style="height:18px;width:40%;margin-top:14px"></div><div style="height:6px;margin-top:14px"></div></div>`).join('');
+    return;
+  }
+  if (!list.length){
+    box.innerHTML = `<div class="empty"><div class="ill"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg></div>
+      <b>${filter==='active' ? (store.length?'Nothing on the way':'No packages yet') : 'No deliveries yet'}</b>
+      ${filter==='active' && !store.length ? `Scan your Gmail for shipping emails, or paste one from the Add tab.<div class="cta"><button class="btn primary" id="ctaScan">Scan Gmail</button></div>` : ''}</div>`;
+    const cta = document.getElementById('ctaScan');
+    if (cta) cta.onclick = ()=>{ if (mcp) scanGmail(+document.getElementById('gRange').value, false); else toast('Open in Claude with Gmail connected'); };
+    return;
+  }
+  for (const it of list) box.appendChild(card(it));
+}
+
+function card(it){
+  const c = CARRIERS[it.carrier] || CARRIERS.Other;
+  const st = it.status || 'Shipped';
+  const e = etaInfo(it);
+  const chipCls = st==='Delivered'?'done':st==='Out for delivery'?'ofd':(e.late||/Delayed|Exception/.test(st))?'late':'';
+  const step = {'Ordered':0,'Label created':0,'Shipped':1,'In transit':1.5,'Delayed':1.5,'Exception':1.5,'Out for delivery':2,'Delivered':3}[st] ?? 1;
+  const labels = ['Ordered','Shipped','Out','Delivered'];
+  const id = it.num;
+  const el = document.createElement('div');
+  el.className = 'pkg' + (st==='Delivered'?' delivered':'') + (openId===id?' open':'');
+  el.innerHTML = `
+    <div class="row1">
+      <div class="avatar" style="background:${c.color}">${AV[it.carrier]||'PKG'}</div>
+      <div style="min-width:0;flex:1"><div class="t">${esc(it.title)}</div><div class="m">${esc(it.merchant||NAME(it.carrier))}</div></div>
+      <span class="chip ${chipCls}">${esc(st==='Out for delivery'?'Out for delivery':st)}</span>
+    </div>
+    <div class="eta"><span class="d">${esc(e.d)}</span>${e.sub?`<span class="sub">${esc(e.sub)}</span>`:''}${e.est?'<span class="est">Estimate</span>':''}</div>
+    <div class="tl"><div class="fill" style="width:calc(${step/3*100}% - ${step/3*12}px)"></div>
+      ${labels.map((l,i)=>`<div class="stop"><span class="dot ${i<=step?'on':''}"></span><span class="lbl ${i<=step?'on':''}">${l}</span></div>`).join('')}</div>
+    <div class="more">
+      <dl class="kv">
+        <dt>${it.isOrder?'Order':'Tracking'}</dt><dd class="mono">${esc(it.num)}</dd>
+        <dt>Carrier</dt><dd>${esc(NAME(it.carrier))}</dd>
+        ${it.order && !it.isOrder?`<dt>Order</dt><dd class="mono">${esc(it.order)}</dd>`:''}
+        <dt>Updated</dt><dd>${new Date(it.emailDate||it.added).toLocaleDateString(undefined,{month:'short',day:'numeric'})} · ${esc(it.source||'Email')}</dd>
+      </dl>
+      <div class="acts">
+        ${it.isOrder && it.carrier==='Other' ? '' : `<a class="btn primary" target="_blank" rel="noopener" href="${c.url(encodeURIComponent(it.num))}">${it.isOrder?'View order':'Track'}</a>`}
+        ${it.link?`<a class="btn" target="_blank" rel="noopener" href="${esc(it.link)}">Email</a>`:''}
+        <button class="btn" data-a="copy">Copy</button>
+        <button class="btn" data-a="done">${st==='Delivered'?'Not delivered':'Mark delivered'}</button>
+        <button class="btn danger" data-a="del">Remove</button>
+      </div>
+    </div>`;
+  el.onclick = (ev)=>{ if (ev.target.closest('.acts')) return; openId = openId===id ? null : id; render(); };
+  el.querySelector('[data-a=copy]').onclick = ()=>copy(it.num);
+  el.querySelector('[data-a=done]').onclick = ()=>{ it.status = st==='Delivered' ? 'Shipped' : 'Delivered'; save(); render(); toast(it.status==='Delivered'?'Marked delivered':'Moved back to On the way'); };
+  el.querySelector('[data-a=del]').onclick = ()=>{ store=store.filter(s=>s!==it); save(); render(); toast('Removed'); };
+  return el;
+}
+
+function renderOrders(box){
+  if (!orders.length){ box.innerHTML = `<div class="empty"><b>No pending orders</b>Orders show here until a shipping email arrives.</div>`; return; }
+  const g = document.createElement('div'); g.className='group';
+  for (const o of orders){
+    const el = document.createElement('div'); el.className='item';
+    el.innerHTML = `<div class="grow"><div class="t">${esc(o.title)}</div><div class="m">${esc(o.merchant||'')} · <span class="mono">${esc(o.order)}</span></div></div>
+      ${o.link?`<a class="btn" target="_blank" rel="noopener" href="${esc(o.link)}">Email</a>`:''}<button class="btn danger">✕</button>`;
+    el.querySelector('button').onclick = ()=>{ orders = orders.filter(x=>x!==o); save(); render(); };
+    g.appendChild(el);
+  }
+  box.appendChild(g);
+}
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2000); }
+async function copy(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); return true; }catch(e){ toast('Copy blocked — long-press to select'); return false; } }
+
+// ---------- version, updates & backup ----------
+const APP_VERSION = '1.1.0';
+const DATA_VERSION = 2;           // bump when saved data changes shape; add a step to MIGRATIONS
+const CHANGELOG = [
+  ['1.1.0', 'Nov 23, 2026', ['New Receipts tab: finds receipts and completed orders in Gmail','Monthly spending totals, categories and search','Copy receipts as a spreadsheet','Add button moved to the top bar']],
+  ['1.0.0', 'Nov 23, 2026', ['Deliveries with status, timeline and arrival estimates','Gmail scanning with Amazon & Walmart order support','Subscriptions tab with in-app unsubscribe and blocking','7 color themes with Light, Dark and Black modes','Backup & restore']],
+];
+const MIGRATIONS = {
+  // 2: (data)=>{ ...upgrade data saved by DATA_VERSION 1... },
+};
+(function migrate(){
+  let v = loadKey('pfDataVersion', 1);
+  while (v < DATA_VERSION){ v++; try{ MIGRATIONS[v] && MIGRATIONS[v](); }catch(e){ console.warn('migration',v,e); } }
+  try{ localStorage.setItem('pfDataVersion', JSON.stringify(DATA_VERSION)); }catch(e){}
+})();
+const BACKUP_KEYS = ['parcelFinder2','pfOrders','pfThreads','pfLastScan','pfSubs','pfSubsHidden','pfBlocked','pfTheme','pfDataVersion','pfReceipts','pfRcptThreads','pfRcptScan'];
+function makeBackup(){
+  const d = {app:'parcel-finder', v:APP_VERSION, at:Date.now(), data:{}};
+  for (const k of BACKUP_KEYS){ try{ const x = localStorage.getItem(k); if (x!=null) d.data[k] = x; }catch(e){} }
+  return 'PF1:' + btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+}
+function restoreBackup(code){
+  const raw = JSON.parse(decodeURIComponent(escape(atob(code.trim().replace(/^PF1:/,'')))));
+  if (raw.app!=='parcel-finder' || !raw.data) throw new Error('bad');
+  for (const [k,v] of Object.entries(raw.data)) if (BACKUP_KEYS.includes(k)) localStorage.setItem(k, v);
+}
+function showWhatsNew(){
+  sheet(`<h3>What's new</h3><p>Parcel Finder ${APP_VERSION}</p>` + CHANGELOG.map(([v,d,items])=>
+    `<div style="margin:12px 0 4px;font-weight:700">${v} <span style="color:var(--mute);font-weight:500;font-size:12.5px">· ${d}</span></div>
+     <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.6">${items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`).join('') +
+    `<button class="btn primary full" style="margin-top:16px" onclick="closeSheet()">Got it</button>`);
+}
+document.getElementById('verLine').textContent = `Version ${APP_VERSION}`;
+document.getElementById('aboutVer').textContent = `Version ${APP_VERSION} · Your data stays on this device and in your Gmail`;
+document.getElementById('whatsNew').onclick = showWhatsNew;
+document.getElementById('bkCopy').onclick = ()=>copy(makeBackup()).then(ok=>{ if (ok) toast('Backup code copied — paste it somewhere safe'); });
+document.getElementById('bkRestore').onclick = ()=>{
+  const sh = sheet(`<h3>Restore from backup</h3><p>Paste your backup code. This replaces what's on this device.</p>
+    <textarea id="bkCode" style="min-height:110px" placeholder="PF1:…"></textarea>
+    <div class="acts" style="margin-top:12px"><button class="btn" style="flex:1;justify-content:center" onclick="closeSheet()">Cancel</button><button class="btn primary" id="bkGo" style="flex:2;justify-content:center">Restore</button></div>`);
+  sh.querySelector('#bkGo').onclick = ()=>{
+    try{ restoreBackup(sh.querySelector('#bkCode').value); toast('Restored — reloading'); setTimeout(()=>location.reload(), 700); }
+    catch(e){ toast('That backup code didn\u2019t work'); }
+  };
+};
+// show "What's new" once after an update
+setTimeout(()=>{
+  const seen = loadKey('pfSeenVersion', null);
+  if (seen && seen !== APP_VERSION) showWhatsNew();
+  try{ localStorage.setItem('pfSeenVersion', JSON.stringify(APP_VERSION)); }catch(e){}
+}, 400);
+
+// ---------- themes ----------
+const ACCENTS = [['indigo','Indigo','#4f6bff','#7a5cff'],['ocean','Ocean','#0284c7','#06b6d4'],['forest','Forest','#059669','#84cc16'],['sunset','Sunset','#ea580c','#e11d48'],['rose','Rose','#db2777','#a855f7'],['gold','Gold','#b45309','#eab308'],['graphite','Graphite','#334155','#64748b']];
+let theme = Object.assign({mode:'auto', accent:'indigo'}, (typeof T==='object' && T) || {});
+const mq = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(){
+  const root = document.documentElement;
+  root.dataset.accent = theme.accent;
+  root.dataset.mode = theme.mode==='auto' ? (mq.matches ? 'dark' : 'light') : theme.mode;
+  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0b0d12';
+  document.querySelectorAll('.sw').forEach(b=>b.classList.toggle('on', b.dataset.a===theme.accent));
+  document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.m===theme.mode));
+  try{ localStorage.setItem('pfTheme', JSON.stringify(theme)); }catch(e){}
+}
+document.getElementById('swatches').innerHTML = ACCENTS.map(([k,n,a,b])=>`<div><button class="sw" data-a="${k}" aria-label="${n}" style="background:linear-gradient(135deg,${a},${b})"></button><div class="sw-name">${n}</div></div>`).join('');
+document.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{ theme.accent=b.dataset.a; applyTheme(); });
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{ theme.mode=b.dataset.m; applyTheme(); });
+mq.addEventListener && mq.addEventListener('change', ()=>{ if (theme.mode==='auto') applyTheme(); });
+applyTheme();
+
+const SUBTITLE = {home:null, add:'Add from an email', rcpt:'Receipts', subs:'Email subscriptions', acct:'Settings'};
+document.getElementById('addBtn').onclick = ()=>go('add');
+function go(v){
+  const lr = document.getElementById('lastRefresh');
+  if (SUBTITLE[v]) lr.textContent = SUBTITLE[v]; else if (typeof showLast==='function') showLast();
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on', x.id==='v-'+v));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{ filter=b.dataset.f; document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b)); render(); });
+
+function splitEmails(text){ const parts = text.split(/\n(?=From:\s)/); return parts.length > 1 ? parts : [text]; }
+async function runPaste(texts){
+  const btn = document.getElementById('scan'); btn.disabled = true; btn.textContent = 'Reading…';
+  let added=0, found=0;
+  for (const [t] of texts) for (const part of splitEmails(t)){ const r = await processEmail(part, {source:'Pasted', subject:''}); added+=r.added; found+=r.found; }
+  save(); btn.disabled = false; btn.textContent = 'Find packages';
+  if (found){ document.getElementById('input').value=''; filter='active'; document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x.dataset.f==='active')); render(); go('home'); }
+  toast(found ? `Found ${found} package${found>1?'s':''} · ${added} new` : 'No tracking numbers found');
+}
+document.getElementById('scan').onclick = ()=>{ const v = document.getElementById('input').value.trim(); if (!v) return toast('Paste an email first'); runPaste([[v]]); };
+document.getElementById('demo').onclick = ()=>{
+  document.getElementById('input').value =
+`From: Target <orders@target.com>
+Subject: Your order is on its way
+Order #902384712: Threshold bath towels (2). Shipped via UPS. Tracking number: 1Z999AA10123456784. Arriving Thursday, Nov 26.
+
+From: Etsy <transaction@etsy.com>
+Subject: Your package is out for delivery
+Handmade ceramic mug. USPS tracking: 9400111899223857264837 — out for delivery today.`;
+};
+const fileIn = document.getElementById('file'), drop = document.getElementById('drop');
+async function readFiles(files){ const t=[]; for (const f of files){ try{ t.push([await f.text()]); }catch(e){} } if (t.length) runPaste(t); }
+fileIn.onchange = ()=>readFiles(fileIn.files);
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>readFiles(e.dataTransfer.files));
+document.getElementById('copyAll').onclick = ()=>{
+  const items = store.filter(s=>s.status!=='Delivered');
+  if (!items.length) return toast('Nothing to copy');
+  copy(items.map(s=>`${NAME(s.carrier)} ${s.num} — ${s.title}${s.eta?' (ETA '+s.eta+')':''}`).join('\n'));
+};
+let wipeArmed=false;
+document.getElementById('wipe').onclick = (e)=>{
+  const b = e.currentTarget;
+  if (!wipeArmed){ wipeArmed=true; b.textContent='Tap again'; setTimeout(()=>{wipeArmed=false;b.textContent='Clear';},2500); return; }
+  store=[]; orders=[]; try{ localStorage.removeItem('pfThreads'); localStorage.removeItem('pfLastScan'); }catch(e){} save(); render(); b.textContent='Clear'; wipeArmed=false; toast('Cleared');
+};
+render();
+
+// ---------- Subscriptions ----------
+let subs = loadKey('pfSubs', {list:[], scanned:0, total:0});
+let subHidden = new Set(loadKey('pfSubsHidden', []));
+let blocked = loadKey('pfBlocked', {}); // email -> {name, at, trashed:[threadIds], via}
+let subCat = 'all', subOpen = null;
+const AVC = ['#ef4444','#f59e0b','#10b981','#0ea5e9','#6366f1','#a855f7','#ec4899','#14b8a6'];
+function saveSubs(){ try{ localStorage.setItem('pfSubs', JSON.stringify(subs)); localStorage.setItem('pfSubsHidden', JSON.stringify([...subHidden])); localStorage.setItem('pfBlocked', JSON.stringify(blocked)); }catch(e){} }
+function ago(t){ const d = Math.floor((Date.now()-t)/864e5); return d<=0?'today':d===1?'yesterday':d<7?`${d}d ago`:d<60?`${Math.floor(d/7)}w ago`:`${Math.floor(d/30)}mo ago`; }
+
+function renderSubs(){
+  const q = (document.getElementById('subSearch').value||'').toLowerCase();
+  const visible = subs.list.filter(x=>!subHidden.has(x.email) && !blocked[x.email]);
+  document.getElementById('subBig').textContent = subs.list.length ? `${visible.length} sender${visible.length===1?'':'s'}` : 'Not scanned yet';
+  document.getElementById('subEmails').textContent = visible.reduce((a,x)=>a+x.count,0);
+  document.getElementById('subTop').textContent = visible[0] ? visible[0].name.slice(0,14) : '—';
+  document.getElementById('subStatus').textContent = subs.scanned ? `Last scanned ${new Date(subs.scanned).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} · tap a sender for options` : 'Scan to list every newsletter and mailing list in your Gmail.';
+  let list = subCat==='blocked'
+    ? Object.entries(blocked).map(([email,b])=>subs.list.find(x=>x.email===email) || {email, name:b.name, count:0, last:b.at, lastSubject:'', cat:''})
+    : visible.filter(x=>subCat==='all' || x.cat===subCat);
+  if (q) list = list.filter(x=>(x.name+' '+x.email).toLowerCase().includes(q));
+  const box = document.getElementById('subList'); box.innerHTML='';
+  if (!list.length){ box.innerHTML = `<div class="empty"><b>${subs.list.length?'No senders here':'No subscriptions yet'}</b>${subs.list.length?'':'Tap Scan to look through the last 90 days.'}</div>`; return; }
+  const g = document.createElement('div'); g.className='group';
+  for (const x of list){
+    const el = document.createElement('div'); el.className='sub'+(subOpen===x.email?' open':'');
+    const col = AVC[[...x.email].reduce((a,c)=>a+c.charCodeAt(0),0)%AVC.length];
+    const gm = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent('from:'+x.email)}`;
+    el.innerHTML = `<div class="subrow">
+        <div class="avatar" style="background:${col}">${esc((x.name||x.email)[0].toUpperCase())}</div>
+        <div class="grow" style="min-width:0"><div class="t">${esc(x.name)}${blocked[x.email]?'<span class="blk">BLOCKED</span>':''}</div><div class="subj">${esc(x.lastSubject||x.email)}</div></div>
+        <div style="text-align:right"><div class="cnt">${x.count}</div><div class="m" style="font-size:11px;margin-top:3px">${ago(x.last)}</div></div>
+      </div>
+      <div class="more2">
+        ${blocked[x.email]
+          ? `<button class="btn" data-a="unblock">Unblock</button>${blocked[x.email].trashed&&blocked[x.email].trashed.length?`<button class="btn" data-a="restore">Restore ${blocked[x.email].trashed.length} emails</button>`:''}`
+          : `<button class="btn primary" data-a="unsub">Unsubscribe</button><button class="btn" data-a="hide">Hide</button>`}
+        <a class="btn" target="_blank" rel="noopener" href="${gm}">View in Gmail</a>
+        <div class="m" style="width:100%;font-size:12px">${esc(x.email)}</div>
+      </div>`;
+    el.querySelector('.subrow').onclick = ()=>{ subOpen = subOpen===x.email?null:x.email; renderSubs(); };
+    const on = (a,f)=>{ const b = el.querySelector(`[data-a=${a}]`); if (b) b.onclick = f; };
+    on('hide', ()=>{ subHidden.add(x.email); saveSubs(); renderSubs(); toast('Hidden'); });
+    on('unsub', ()=>openUnsub(x));
+    on('unblock', ()=>{ delete blocked[x.email]; saveSubs(); renderSubs(); toast('Unblocked'); });
+    on('restore', ev=>restoreEmails(x, ev.currentTarget));
+    g.appendChild(el);
+  }
+  box.appendChild(g);
+}
+
+function sheet(html){ const sh=document.getElementById('sheet'); sh.innerHTML = '<div class="grab"></div>'+html; sh.classList.add('on'); document.getElementById('scrim').classList.add('on'); return sh; }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('scrim').classList.remove('on'); }
+document.getElementById('scrim').onclick = closeSheet;
+
+// look in the sender's latest email for an unsubscribe address/link
+async function findUnsubTarget(x){
+  if (x.unsubChecked) return {mailto:x.mailto||'', link:x.unsub||''};
+  const anchorRe = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let mailto='', link='';
+  for (const fmt of ['PLAIN_TEXT','FULL_CONTENT']){
+    const th = payloadOf(await mcp.callTool('Gmail','get_thread',{threadId:x.threadId,messageFormat:fmt}));
+    const m = (th.messages||[]).slice(-1)[0] || {};
+    const txt = m.plaintextBody||'', html = m.htmlBody||'';
+    const mt = (txt+html).match(/mailto:([^"'\s?>]+@[^"'\s?>]+)(\?[^"'\s>]*)?/i);
+    if (mt && /unsub|remove|opt/i.test((txt+html).slice(Math.max(0,(txt+html).indexOf(mt[0])-200), (txt+html).indexOf(mt[0])+200))) mailto = decodeURIComponent(mt[1]);
+    const t = txt.match(/(unsubscribe|opt.?out|email preferences|manage (your )?(subscriptions|preferences))[\s\S]{0,60}?(https?:\/\/[^\s)]+)/i) || txt.match(/(https?:\/\/[^\s)]*unsub[^\s)]*)/i);
+    if (t) link = t[t.length-1];
+    if (!link && html){
+      const anchors = [...html.matchAll(anchorRe)];
+      const hit = anchors.find(a=>/unsubscribe|opt.?out|email preferences|manage (your )?(subscriptions|preferences)/i.test(a[2].replace(/<[^>]+>/g,''))) || anchors.find(a=>/unsub|optout|opt-out/i.test(a[1]));
+      if (hit && /^https?:/i.test(hit[1])) link = hit[1].replace(/&amp;/g,'&');
+    }
+    if (link || mailto || fmt==='FULL_CONTENT') break;
+  }
+  Object.assign(x, {unsub:link, mailto, unsubChecked:true}); saveSubs();
+  return {mailto, link};
+}
+
+async function openUnsub(x){
+  if (!mcp) return toast('Open in Claude with Gmail connected');
+  const sh = sheet(`<h3>Unsubscribe from ${esc(x.name)}?</h3><p>${esc(x.email)}</p><div class="stepline"><span class="ic spinner">⏳</span>Checking their latest email…</div>`);
+  let tgt = {mailto:'', link:''};
+  try{ tgt = await findUnsubTarget(x); }catch(e){}
+  sh.innerHTML = `<div class="grab"></div><h3>Unsubscribe from ${esc(x.name)}?</h3><p>${esc(x.email)} · ${x.count} emails in 90 days</p>
+    ${tgt.mailto ? `<label class="opt"><input type="checkbox" id="oMail" checked><div>Send unsubscribe request<small>Emails ${esc(tgt.mailto)} from your Gmail — the sender removes you</small></div></label>` : ''}
+    <label class="opt"><input type="checkbox" id="oBlock" checked><div>Block this sender<small>Every refresh moves new emails from them to Trash</small></div></label>
+    <label class="opt"><input type="checkbox" id="oTrash" checked><div>Clear existing emails<small>Moves their emails to Trash (recoverable for 30 days)</small></div></label>
+    <div class="acts" style="margin-top:14px"><button class="btn" id="oCancel" style="flex:1;justify-content:center">Cancel</button><button class="btn primary" id="oGo" style="flex:2;justify-content:center">Unsubscribe</button></div>
+    ${tgt.link && !tgt.mailto ? `<p style="margin:14px 0 0;font-size:12.5px">${esc(x.name)} only offers a web unsubscribe page. Blocking works on its own; to also stop them at the source, <a href="${esc(tgt.link)}" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600">open their page ↗</a></p>` : ''}`;
+  sh.querySelector('#oCancel').onclick = closeSheet;
+  sh.querySelector('#oGo').onclick = ()=>doUnsub(x, tgt, {mail: !!(sh.querySelector('#oMail')||{}).checked, block: sh.querySelector('#oBlock').checked, trash: sh.querySelector('#oTrash').checked});
+}
+
+async function trashFrom(email, query, onProgress){
+  const ids = []; let token='';
+  for (let p=0;p<10;p++){
+    const r = payloadOf(await mcp.callTool('Gmail','search_threads',{query:`from:${email} ${query||''}`.trim(),pageSize:50,view:'THREAD_VIEW_IDS_ONLY',...(token?{pageToken:token}:{})}));
+    (r.threads||[]).forEach(t=>ids.push(t.id)); token = r.nextPageToken; if (!token) break;
+  }
+  const done = [];
+  for (let i=0;i<ids.length;i+=5){
+    await Promise.all(ids.slice(i,i+5).map(async id=>{ try{ await mcp.callTool('Gmail','trash_thread',{threadId:id}); done.push(id); }catch(e){} }));
+    onProgress && onProgress(done.length, ids.length);
+  }
+  return done;
+}
+
+async function doUnsub(x, tgt, o){
+  if (!o.mail && !o.block && !o.trash) return closeSheet();
+  const sh = document.getElementById('sheet');
+  const line = (id,txt)=>`<div class="stepline" id="${id}"><span class="ic">⏳</span><span>${txt}</span></div>`;
+  sh.innerHTML = `<div class="grab"></div><h3>Unsubscribing…</h3><p>${esc(x.name)}</p>
+    ${o.mail?line('sMail','Sending unsubscribe request'):''}${o.trash?line('sTrash','Clearing existing emails'):''}${o.block?line('sBlock','Blocking sender'):''}`;
+  const mark = (id, ok, txt)=>{ const el = sh.querySelector('#'+id); if (el){ el.querySelector('.ic').textContent = ok?'✅':'⚠️'; if (txt) el.querySelector('span:last-child').textContent = txt; } };
+  let trashed = [];
+  if (o.mail){
+    try{ await mcp.callTool('Gmail','send_message',{to:[tgt.mailto], subject:'unsubscribe', body:'Please unsubscribe me from this mailing list.'}); mark('sMail', true, 'Unsubscribe request sent'); }
+    catch(e){ mark('sMail', false, 'Couldn’t send the request'); }
+  }
+  if (o.trash){
+    try{ trashed = await trashFrom(x.email, '', (d,n)=>{ const el = sh.querySelector('#sTrash span:last-child'); if (el) el.textContent = `Clearing existing emails ${d}/${n}`; }); mark('sTrash', true, `Moved ${trashed.length} emails to Trash`); }
+    catch(e){ mark('sTrash', false, 'Couldn’t clear emails'); }
+  }
+  if (o.block){ mark('sBlock', true, 'Sender blocked'); }
+  blocked[x.email] = {name:x.name, at:Date.now(), trashed, block:o.block, mailed:o.mail};
+  if (!o.block && !o.mail) delete blocked[x.email], subHidden.add(x.email);
+  saveSubs(); renderSubs();
+  sh.querySelector('h3').textContent = 'Unsubscribed';
+  sh.insertAdjacentHTML('beforeend', `<button class="btn primary full" style="margin-top:14px" id="sDone">Done</button>`);
+  sh.querySelector('#sDone').onclick = closeSheet;
+}
+
+async function restoreEmails(x, btn){
+  const b = blocked[x.email]; if (!b || !b.trashed) return;
+  btn.disabled = true; btn.textContent = 'Restoring…';
+  let n = 0;
+  for (let i=0;i<b.trashed.length;i+=5){
+    await Promise.all(b.trashed.slice(i,i+5).map(async id=>{
+      try{ await mcp.callTool('Gmail','untrash_thread',{threadId:id}); n++; }catch(e){}
+    }));
+  }
+  b.trashed = []; saveSubs(); renderSubs(); toast(`Restored ${n} emails`);
+}
+
+// run on every refresh: move new mail from blocked senders to Trash
+async function sweepBlocked(){
+  const list = Object.entries(blocked).filter(([,b])=>b.block).map(([e])=>e);
+  if (!mcp || !list.length) return 0;
+  let n = 0;
+  for (let i=0;i<list.length;i+=10){
+    const q = `in:inbox newer_than:14d from:(${list.slice(i,i+10).join(' OR ')})`;
+    const r = payloadOf(await mcp.callTool('Gmail','search_threads',{query:q,pageSize:50,view:'THREAD_VIEW_IDS_ONLY'}));
+    for (const t of r.threads||[]){ try{ await mcp.callTool('Gmail','trash_thread',{threadId:t.id}); n++; }catch(e){} }
+  }
+  return n;
+}
+
+async function scanSubs(){
+  if (!mcp) return toast('Open in Claude with Gmail connected');
+  const btn = document.getElementById('subScan'); btn.disabled = true; btn.textContent = 'Scanning…';
+  const st = document.getElementById('subStatus');
+  const q = 'newer_than:90d (unsubscribe OR category:promotions OR category:social OR category:forums OR list:*) -in:sent -in:chats';
+  const map = new Map(); let token = '', total = 0;
+  try{
+    for (let page=0; page<10; page++){
+      const res = payloadOf(await mcp.callTool('Gmail','search_threads',{query:q,pageSize:50,view:'THREAD_VIEW_SUMMARY',...(token?{pageToken:token}:{})}));
+      for (const t of res.threads||[]){
+        const m = (t.messages||[])[0]; if (!m || !m.sender) continue;
+        total++;
+        const email = m.sender.toLowerCase();
+        const dn = (m.addressDisplayNames||[]).find(a=>a.emailAddress && a.emailAddress.toLowerCase()===email);
+        const date = Date.parse(m.date) || Date.now();
+        const labels = m.labelIds||[];
+        const cat = ['CATEGORY_PROMOTIONS','CATEGORY_SOCIAL','CATEGORY_UPDATES','CATEGORY_FORUMS'].find(c=>labels.includes(c)) || 'CATEGORY_UPDATES';
+        const cur = map.get(email) || {email, name: dn&&dn.displayName || prettyDomain(email.split('@')[1]) || email, count:0, last:0, cat, threadId:t.id, lastSubject:''};
+        cur.count += t.messageCount||1;
+        if (date > cur.last){ cur.last = date; cur.lastSubject = m.subject||''; cur.threadId = t.id; cur.cat = cat; }
+        map.set(email, cur);
+      }
+      st.textContent = `Read ${total} emails · ${map.size} senders…`;
+      setProgress(Math.min(1,(page+1)/10));
+      token = res.nextPageToken; if (!token) break;
+    }
+    const old = new Map(subs.list.map(x=>[x.email,x]));
+    subs = {list:[...map.values()].map(x=>({...x, unsub: old.get(x.email)&&old.get(x.email).unsub || ''})).sort((a,b)=>b.count-a.count||b.last-a.last), scanned:Date.now(), total};
+    saveSubs(); renderSubs(); toast(`Found ${subs.list.length} subscriptions`);
+  }catch(e){ st.textContent = 'Scan failed — try again'; }
+  btn.disabled = false; btn.textContent = 'Scan'; setProgress(0);
+}
+document.getElementById('subScan').onclick = scanSubs;
+document.getElementById('subSearch').oninput = renderSubs;
+document.querySelectorAll('#subSeg button').forEach(b=>b.onclick=()=>{ subCat=b.dataset.c; document.querySelectorAll('#subSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderSubs(); });
+renderSubs();
+
+// ---------- Receipts ----------
+let receipts = loadKey('pfReceipts', []);   // {id, merchant, date, total, currency, order, items, category, link, subject, from}
+let rcCat = 'All', rcOpen = null;
+const RC_CATS = {'Shopping':['🛍️','#6366f1'],'Food & Drink':['🍔','#f59e0b'],'Groceries':['🛒','#10b981'],'Auto':['🚗','#64748b'],'Bills & Utilities':['💡','#0ea5e9'],'Travel':['✈️','#06b6d4'],'Entertainment':['🎬','#a855f7'],'Health':['💊','#ef4444'],'Other':['🧾','#94a3b8']};
+function saveReceipts(){ try{ localStorage.setItem('pfReceipts', JSON.stringify(receipts)); }catch(e){} }
+const money = (n,c)=>{ try{ return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'USD'}).format(n||0); }catch(e){ return '$'+(n||0).toFixed(2); } };
+function monthKey(d){ return d.slice(0,7); }
+
+function renderReceipts(){
+  const now = new Date(), thisM = now.toISOString().slice(0,7);
+  const lm = new Date(now.getFullYear(), now.getMonth()-1, 15).toISOString().slice(0,7);
+  const sum = arr=>arr.reduce((a,r)=>a+(+r.total||0),0);
+  const inM = m=>receipts.filter(r=>monthKey(r.date)===m);
+  document.getElementById('rcBig').textContent = money(sum(inM(thisM)));
+  document.getElementById('rcCount').textContent = inM(thisM).length;
+  document.getElementById('rcLast').textContent = money(sum(inM(lm))).replace(/\.\d\d$/,'');
+  const byStore = {}; inM(thisM).forEach(r=>byStore[r.merchant]=(byStore[r.merchant]||0)+(+r.total||0));
+  const top = Object.entries(byStore).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('rcTop').textContent = top ? top[0].slice(0,12) : '—';
+  const cats = ['All', ...Object.keys(RC_CATS).filter(c=>receipts.some(r=>r.category===c))];
+  document.getElementById('rcCats').innerHTML = cats.map(c=>`<button class="${c===rcCat?'on':''}" data-c="${esc(c)}">${c==='All'?'All':RC_CATS[c][0]+' '+esc(c)}</button>`).join('');
+  document.querySelectorAll('#rcCats button').forEach(b=>b.onclick=()=>{ rcCat=b.dataset.c; renderReceipts(); });
+  const st = loadKey('pfRcptScan', 0);
+  document.getElementById('rcStatus').textContent = st ? `Last scanned ${new Date(st).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}` : 'Scan Gmail for receipts and completed orders.';
+
+  const q = (document.getElementById('rcSearch').value||'').toLowerCase();
+  let list = receipts.filter(r=>(rcCat==='All'||r.category===rcCat) && (!q || [r.merchant,r.items,r.order,r.subject].join(' ').toLowerCase().includes(q)));
+  list.sort((a,b)=>b.date.localeCompare(a.date));
+  const box = document.getElementById('rcList'); box.innerHTML = '';
+  if (!list.length){ box.innerHTML = `<div class="empty"><div class="ill" style="font-size:38px">🧾</div><b>${receipts.length?'No matching receipts':'No receipts yet'}</b>${receipts.length?'':'Tap Scan to find receipts and completed orders in your Gmail.'}</div>`; return; }
+  const groups = {}; list.forEach(r=>(groups[monthKey(r.date)] ||= []).push(r));
+  for (const [m, rs] of Object.entries(groups)){
+    const label = new Date(m+'-15').toLocaleDateString(undefined,{month:'long',year:'numeric'});
+    box.insertAdjacentHTML('beforeend', `<div class="month"><span>${label}</span><b>${money(sum(rs))}</b></div>`);
+    const g = document.createElement('div'); g.className='group';
+    for (const r of rs){
+      const [ic, col] = RC_CATS[r.category] || RC_CATS.Other;
+      const el = document.createElement('div'); el.className = 'rc' + (rcOpen===r.id?' open':'');
+      el.innerHTML = `<div class="subrow">
+          <div class="catic" style="background:color-mix(in srgb,${col} 18%,var(--surface))">${ic}</div>
+          <div class="grow" style="min-width:0"><div class="t">${esc(r.merchant)}</div><div class="subj">${esc(r.items || r.subject || '')}</div></div>
+          <div style="text-align:right"><div class="amt">${r.total!=null?money(r.total,r.currency):'—'}</div><div class="m" style="font-size:11.5px;margin-top:2px">${new Date(r.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div></div>
+        </div>
+        <div class="more2">
+          <dl class="kv" style="margin:0">
+            ${r.order?`<dt>Order</dt><dd class="mono">${esc(r.order)}</dd>`:''}
+            <dt>Date</dt><dd>${new Date(r.date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'long',day:'numeric',year:'numeric'})}</dd>
+            <dt>Category</dt><dd><select data-a="cat">${Object.keys(RC_CATS).map(c=>`<option ${c===r.category?'selected':''}>${c}</option>`).join('')}</select></dd>
+            ${r.from?`<dt>From</dt><dd>${esc(r.from)}</dd>`:''}
+          </dl>
+          <div class="acts">
+            ${r.link?`<a class="btn primary" target="_blank" rel="noopener" href="${esc(r.link)}">Open receipt</a>`:''}
+            ${r.order?`<button class="btn" data-a="copy">Copy order #</button>`:''}
+            <button class="btn danger" data-a="del">Remove</button>
+          </div>
+        </div>`;
+      el.querySelector('.subrow').onclick = ()=>{ rcOpen = rcOpen===r.id?null:r.id; renderReceipts(); };
+      const on=(a,ev,f)=>{ const b=el.querySelector(`[data-a=${a}]`); if (b) b[ev]=f; };
+      on('copy','onclick',()=>copy(r.order));
+      on('del','onclick',()=>{ receipts = receipts.filter(x=>x!==r); saveReceipts(); renderReceipts(); toast('Removed'); });
+      on('cat','onchange',e=>{ r.category = e.target.value; saveReceipts(); renderReceipts(); });
+      g.appendChild(el);
+    }
+    box.appendChild(g);
+  }
+}
+
+function regexReceipt(text){
+  const m = text.match(/(grand total|order total|total charged|amount charged|amount paid|total paid|payment total|total)\s*(?:\(.*?\))?\s*[:\-]?\s*(?:USD\s*)?\$\s*([\d,]+\.\d{2})/i);
+  return m ? +m[2].replace(/,/g,'') : null;
+}
+
+async function extractReceipt(body, meta){
+  const plain = stripHtml(body);
+  let r = null;
+  if (sample){
+    try{
+      r = await sample.json(`Decide if this email is a purchase receipt or a completed/confirmed order or payment (not marketing, not just a shipping update with no price). Return ONLY JSON:
+{"is_receipt": boolean, "merchant": string, "date": "YYYY-MM-DD" (purchase date; default to the email date ${meta.date}), "total": number|null (final amount charged), "currency": "USD"|string,
+ "order": string|null, "items": string|null (short summary, max 70 chars), "category": "Shopping"|"Food & Drink"|"Groceries"|"Auto"|"Bills & Utilities"|"Travel"|"Entertainment"|"Health"|"Other"}
+Subject: ${meta.subject}
+From: ${meta.from}
+---
+${plain.slice(0,6000)}`, {modelTier:'quick'});
+    }catch(e){ if (e && e.code==='not_granted') sample = null; r = null; }
+  }
+  if (r){
+    if (!r.is_receipt) return null;
+    // only keep a total that actually appears in the email
+    if (r.total!=null){ const t = (+r.total).toFixed(2); if (!plain.replace(/,/g,'').includes(t)) r.total = regexReceipt(plain); }
+  } else {
+    if (!/receipt|order (confirm|complete|placed)|thank(s| you) for (your )?(order|purchase)|payment (received|confirmation)|invoice/i.test(meta.subject+' '+plain.slice(0,800))) return null;
+    const total = regexReceipt(plain); if (total==null) return null;
+    const ord = regexOrders(plain)[0] || null;
+    const hay = (meta.from+' '+meta.subject+' '+plain.slice(0,1500)).toLowerCase();
+    const guess = [['Food & Drink',/starbucks|doordash|ubereats|uber eats|grubhub|restaurant|pizza|coffee|cafe|mcdonald|chipotle/],['Groceries',/grocery|safeway|fred meyer|kroger|instacart|whole foods|trader joe|costco/],['Auto',/rockauto|autozone|o'?reilly|napa|advance auto|carparts|fuel|gas station|chevron|shell/],['Bills & Utilities',/power|electric|utility|water|internet|comcast|xfinity|verizon|t-mobile|at&t|bill|invoice/],['Travel',/airline|flight|hotel|airbnb|expedia|uber|lyft/],['Entertainment',/netflix|spotify|hulu|steam|playstation|xbox|ticket|movie|disney/],['Health',/pharmacy|cvs|walgreens|rite aid|clinic/],['Shopping',/amazon|walmart|target|etsy|ebay|best buy|order/]].find(([,re])=>re.test(hay));
+    r = {merchant:'', date:meta.date, total, currency:'USD', order:ord, items:null, category: guess ? guess[0] : 'Other'};
+  }
+  r.merchant = r.merchant || prettyDomain((meta.from.match(/@([\w.-]+)/)||[])[1]||'') || 'Unknown';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date||'')) r.date = meta.date;
+  if (!RC_CATS[r.category]) r.category = 'Other';
+  return r;
+}
+
+async function scanReceipts(){
+  if (!mcp) return toast('Open in Claude with Gmail connected');
+  const btn = document.getElementById('rcScan'), st = document.getElementById('rcStatus');
+  btn.disabled = true; btn.textContent = 'Scanning…'; document.body.classList.add('syncing');
+  const seen = new Set(loadKey('pfRcptThreads', []));
+  const days = loadKey('pfRcptScan', 0) ? 30 : 180;
+  const q = `newer_than:${days}d (receipt OR "order confirmation" OR "order confirmed" OR "order complete" OR "order completed" OR "thank you for your order" OR "thanks for your order" OR "thank you for your purchase" OR "payment received" OR "payment confirmation" OR invoice OR "order total" OR category:purchases) -in:sent -category:social -category:promotions`;
+  try{
+    const ids = []; let token='';
+    for (let p=0;p<4;p++){
+      const r = payloadOf(await mcp.callTool('Gmail','search_threads',{query:q,pageSize:50,view:'THREAD_VIEW_IDS_ONLY',...(token?{pageToken:token}:{})}));
+      (r.threads||[]).forEach(t=>{ if (!seen.has(t.id)) ids.push(t.id); }); token = r.nextPageToken; if (!token) break;
+    }
+    let found = 0, done = 0;
+    for (let i=0;i<ids.length;i+=4){
+      await Promise.all(ids.slice(i,i+4).map(async id=>{
+        try{
+          const th = payloadOf(await mcp.callTool('Gmail','get_thread',{threadId:id,messageFormat:'PLAIN_TEXT'}));
+          for (const m of th.messages||[]){
+            const meta = {subject:m.subject||'', from:m.sender||'', date:(m.date||new Date().toISOString()).slice(0,10)};
+            const r = await extractReceipt(m.plaintextBody||m.snippet||'', meta);
+            if (!r) continue;
+            const key = r.order ? (r.merchant+'|'+r.order).toLowerCase() : m.id;
+            const dup = receipts.find(x=>x.key===key);
+            const rec = {...r, id:m.id, key, link:m.viewUrl||th.viewUrl||'', subject:meta.subject, from:meta.from};
+            if (dup){ if (rec.total!=null && dup.total==null) Object.assign(dup, rec); }
+            else { receipts.push(rec); found++; }
+          }
+          seen.add(id);
+        }catch(e){}
+        done++; st.textContent = `Reading ${done}/${ids.length}…`; setProgress(done/ids.length);
+      }));
+      saveReceipts(); renderReceipts();
+    }
+    try{ localStorage.setItem('pfRcptThreads', JSON.stringify([...seen].slice(-2000))); localStorage.setItem('pfRcptScan', JSON.stringify(Date.now())); }catch(e){}
+    renderReceipts(); toast(found ? `Found ${found} new receipt${found===1?'':'s'}` : 'No new receipts');
+  }catch(e){ st.textContent = 'Scan failed — try again'; }
+  btn.disabled = false; btn.textContent = 'Scan'; document.body.classList.remove('syncing'); setProgress(0);
+}
+document.getElementById('rcScan').onclick = scanReceipts;
+document.getElementById('rcSearch').oninput = renderReceipts;
+document.getElementById('rcCopy').onclick = ()=>{
+  if (!receipts.length) return toast('No receipts to copy');
+  const rows = [['Date','Store','Total','Category','Order','Items']].concat([...receipts].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>[r.date,r.merchant,r.total!=null?(+r.total).toFixed(2):'',r.category,r.order||'',r.items||'']));
+  copy(rows.map(r=>r.map(c=>String(c).replace(/\t|\n/g,' ')).join('\t')).join('\n')).then(ok=>{ if (ok) toast('Copied — paste into Google Sheets or Excel'); });
+};
+renderReceipts();
+
+// ---------- Gmail via connector ----------
+
+const gBtn = document.getElementById('gScan'), gStatus = document.getElementById('gStatus');
+function seenThreads(){ try{ return new Set(JSON.parse(localStorage.getItem('pfThreads')||'[]')); }catch(e){ return new Set(); } }
+function saveSeen(set){ try{ localStorage.setItem('pfThreads', JSON.stringify([...set].slice(-1000))); }catch(e){} }
+function payloadOf(r){
+  let p = r && (r.payload ?? r);
+  if (p && p.content && Array.isArray(p.content)) p = p.content.map(c=>c.text||'').join('');
+  if (typeof p === 'string'){ try{ p = JSON.parse(p); }catch(e){} }
+  return p || {};
+}
+(async ()=>{
+  try{ [mcp, sample] = await Promise.all([claude.use('mcp'), claude.use('sample')]); }catch(e){}
+  if (mcp){
+    gBtn.disabled = rBtn.disabled = false; document.getElementById('subScan').disabled = false; document.getElementById('rcScan').disabled = false; gStatus.textContent = window.PF ? (PF.isSignedIn() ? 'Signed in as '+(PF.account()||'') : 'Not signed in') : 'Connected';
+    // auto-refresh on open if you've scanned before and it's been 30+ min
+    const last = loadKey('pfLastScan', 0);
+    if (last && Date.now()-last > 30*60e3 && (!window.PF || PF.isSignedIn())) scanGmail(7, true);
+  }
+  else { gStatus.textContent = 'Not available here'; document.getElementById('gHint').hidden = false; }
+})();
+
+const rBtn = document.getElementById('refresh');
+let scanning = false;
+function showLast(){ const t = loadKey('pfLastScan', 0); document.getElementById('lastRefresh').textContent = t ? `Updated ${new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}` : 'Your deliveries'; }
+showLast();
+rBtn.onclick = ()=>scanGmail(loadKey('pfLastScan',0) ? 7 : +document.getElementById('gRange').value, true);
+gBtn.onclick = ()=>scanGmail(+document.getElementById('gRange').value, false);
+
+async function scanGmail(days, isRefresh){
+  if (!mcp || scanning) return;
+  scanning = true; gBtn.disabled = rBtn.disabled = true;
+  rBtn.classList.add('busy'); document.body.classList.add('syncing'); render();
+  const q = `newer_than:${days}d (tracking OR "tracking number" OR shipped OR "has shipped" OR "on its way" OR "out for delivery" OR delivered OR "order number" OR "order confirmation" OR arriving OR from:amazon.com OR from:walmart.com) -in:sent -category:promotions`;
+  try{
+    gStatus.textContent = 'Searching…';
+    const threads = []; let token = '';
+    for (let page=0; page<3; page++){
+      const res = payloadOf(await mcp.callTool('Gmail','search_threads',{query:q,pageSize:50,view:'THREAD_VIEW_SUMMARY',...(token?{pageToken:token}:{})}));
+      (res.threads||[]).forEach(t=>threads.push(t));
+      token = res.nextPageToken; if (!token) break;
+    }
+    const seen = seenThreads();
+    // key on message count so a thread that gets a new "delivered" message is re-read
+    const todo = threads.filter(t=>!seen.has(`${t.id}:${t.messageCount||1}`));
+    let added=0, done=0;
+    for (let i=0;i<todo.length;i+=4){
+      await Promise.all(todo.slice(i,i+4).map(async t=>{
+        try{
+          const th = payloadOf(await mcp.callTool('Gmail','get_thread',{threadId:t.id,messageFormat:'PLAIN_TEXT'}));
+          const msgs = th.messages||[];
+          // process each message oldest→newest so the latest status wins
+          for (const m of msgs){
+            const r = await processEmail(m.plaintextBody||m.snippet||'', {subject:m.subject||'', from:m.sender||'', date:m.date, source:'Gmail', link:m.viewUrl||th.viewUrl||''});
+            added += r.added;
+          }
+          seen.add(`${t.id}:${t.messageCount||msgs.length||1}`);
+        }catch(e){}
+        done++; gStatus.textContent = `Reading ${done}/${todo.length}…`; setProgress(done/todo.length);
+      }));
+      save(); render();
+    }
+    saveSeen(seen); save(); render();
+    let swept = 0; try{ swept = await sweepBlocked(); }catch(e){}
+    try{ localStorage.setItem('pfLastScan', JSON.stringify(Date.now())); }catch(e){} showLast();
+    gStatus.textContent = `Last scan ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`;
+    const parts = [todo.length ? `${added} new package${added===1?'':'s'}` : (isRefresh ? 'Up to date' : 'No new shipping emails')];
+    if (swept) parts.push(`${swept} blocked email${swept===1?'':'s'} cleared`);
+    toast(parts.join(' · '));
+  }catch(e){
+    const code = e && (e.code||e.message) || '';
+    gStatus.textContent = /not_connected|authz|denied/i.test(code) ? (window.PF ? 'Signed out — tap refresh to sign in' : 'Gmail not connected — connect it in Claude') : 'Scan failed — try again';
+  }
+  scanning = false; gBtn.disabled = rBtn.disabled = false; rBtn.classList.remove('busy'); document.body.classList.remove('syncing');
+}
+
+</script>
+</body>
+</html>
