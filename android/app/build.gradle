@@ -1,0 +1,43 @@
+plugins { id 'com.android.application' }
+
+def siteUrl = 'https://amon3411.github.io/parcel-finder/'
+def ver = (new File(rootDir, '../src/shell.html').text =~ /APP_VERSION = '([\d.]+)'/)[0][1]
+
+android {
+    namespace 'io.github.amon3411.parcelfinder'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'io.github.amon3411.parcelfinder'
+        minSdk 21
+        targetSdk 34
+        versionCode ver.tokenize('.').with { (it[0] as int) * 10000 + (it[1] as int) * 100 + (it[2] as int) }
+        versionName ver
+        manifestPlaceholders = [
+            hostName: 'amon3411.github.io',
+            defaultUrl: siteUrl,
+            launcherName: 'Parcel Finder',
+            themeColor: '#4F6BFF',
+            backgroundColor: '#0B0D12'
+        ]
+        resValue 'string', 'appName', 'Parcel Finder'
+        resValue 'string', 'assetStatements',
+            '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": {"namespace": "web", "site": "https://amon3411.github.io"}}]'
+    }
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('KEYSTORE_FILE') ?: 'release.p12')
+            storePassword System.getenv('KEYSTORE_PASSWORD')
+            keyAlias 'parcelfinder'
+            keyPassword System.getenv('KEYSTORE_PASSWORD')
+            storeType 'pkcs12'
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.release }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

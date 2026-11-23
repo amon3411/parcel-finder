@@ -1,2 +1,8 @@
 node_modules/
 .DS_Store
+android/app/build/
+android/.gradle/
+android/build/
+*.p12
+*.jks
+*.keystore

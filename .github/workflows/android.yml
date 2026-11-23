@@ -1,0 +1,84 @@
+name: Build Android app
+
+# Builds a signed APK and publishes it as a GitHub Release (tag v<version>).
+# Obtainium watches these releases to install updates on your phone.
+#
+# Signing key: never stored in the repo. It's kept as an asset on a DRAFT release
+# named "signing-key" (drafts are only visible to you), encrypted with the
+# KEYSTORE_PASSWORD repository secret. Losing it means users must reinstall.
+on:
+  push:
+    branches: [main]
+    paths: ['src/shell.html', 'android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check signing password
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Add a repository secret named KEYSTORE_PASSWORD (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.7' }
+
+      - name: App version
+        id: ver
+        run: |
+          V=$(grep -oP "APP_VERSION = '\K[0-9.]+" src/shell.html)
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$V" >/dev/null; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Get signing key (create it on first run)
+        run: |
+          if gh release download signing-key -p release.p12 -D android/app 2>/dev/null; then
+            echo "Using existing signing key"
+          else
+            keytool -genkeypair -storetype pkcs12 -keystore android/app/release.p12 -alias parcelfinder \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" -dname "CN=Parcel Finder"
+            gh release create signing-key --draft --title "Signing key — private, do not publish" \
+              --notes "Encrypted Android signing key used by the build workflow. Keep this as a draft." android/app/release.p12
+          fi
+
+      - name: App-link file for the signing key
+        run: |
+          FP=$(keytool -list -v -storetype pkcs12 -keystore android/app/release.p12 -storepass "$KEYSTORE_PASSWORD" -alias parcelfinder | grep -oP 'SHA256: \K[0-9A-F:]+')
+          mkdir -p android/well-known
+          printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"io.github.amon3411.parcelfinder","sha256_cert_fingerprints":["%s"]}}]\n' "$FP" > android/well-known/assetlinks.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/well-known
+          git diff --cached --quiet || (git commit -m "Update app-link file [skip ci]" && git push)
+
+      - name: Build APK
+        if: steps.ver.outputs.exists == 'false' || github.event_name == 'workflow_dispatch'
+        run: |
+          gradle -p android assembleRelease
+          cp android/app/build/outputs/apk/release/app-release.apk "parcel-finder-${{ steps.ver.outputs.version }}.apk"
+          rm -f android/app/release.p12
+
+      - name: Publish release
+        if: steps.ver.outputs.exists == 'false' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Parcel Finder ${{ steps.ver.outputs.version }}
+          body: "Install or update with Obtainium (add this GitHub repo as the source), or download the APK below."
+          files: parcel-finder-${{ steps.ver.outputs.version }}.apk
+          make_latest: true
