@@ -7,7 +7,7 @@ Deliveries, receipts and email subscriptions from your Gmail — as an installab
 ## How it's built
 - `src/` holds the source: `shell.html` (layout + UI), `logic.js` (tracking/receipt detection), `gmail.js` (scanning).
 - `python3 src/build.py` builds two versions from the same source:
-  - `index.html` — standalone app (Google sign-in + Gmail API via `gmail-shim.js`)
+  - `index.html` — standalone app (Google sign-in + Gmail API via `mail-shim.js`)
   - `claude/index.html` — the Claude version (uses Claude's Gmail connector)
 - `config.js` holds the Google OAuth client ID (not a secret; it only works from this site's address).
 - `sw.js` makes it installable and work offline; updates load automatically.

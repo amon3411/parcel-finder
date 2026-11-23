@@ -15,7 +15,7 @@ head = f'''<link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script src="config.js?v={version}"></script>
-<script src="gmail-shim.js?v={version}"></script>
+<script src="mail-shim.js?v={version}"></script>
 '''
 tail = '''<script>
 if (navigator.serviceWorker) {

@@ -50,7 +50,7 @@ async function scanGmail(days, isRefresh){
           const msgs = th.messages||[];
           // process each message oldest→newest so the latest status wins
           for (const m of msgs){
-            const r = await processEmail(m.plaintextBody||m.snippet||'', {subject:m.subject||'', from:m.sender||'', date:m.date, source:'Gmail', link:m.viewUrl||th.viewUrl||''});
+            const r = await processEmail(m.plaintextBody||m.snippet||'', {subject:m.subject||'', from:m.sender||'', date:m.date, source:m.account||'Gmail', link:m.viewUrl||th.viewUrl||''});
             added += r.added;
           }
           seen.add(`${t.id}:${t.messageCount||msgs.length||1}`);
