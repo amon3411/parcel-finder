@@ -455,9 +455,10 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 async function copy(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); return true; }catch(e){ toast('Copy blocked — long-press to select'); return false; } }
 
 // ---------- version, updates & backup ----------
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const DATA_VERSION = 2;           // bump when saved data changes shape; add a step to MIGRATIONS
 const CHANGELOG = [
+  ['1.2.0', 'Nov 23, 2026', ['Runs on its own — no Claude needed','Install it to your home screen as an app','Sign in with Google to scan Gmail','Works offline with your saved data']],
   ['1.1.0', 'Nov 23, 2026', ['New Receipts tab: finds receipts and completed orders in Gmail','Monthly spending totals, categories and search','Copy receipts as a spreadsheet','Add button moved to the top bar']],
   ['1.0.0', 'Nov 23, 2026', ['Deliveries with status, timeline and arrival estimates','Gmail scanning with Amazon & Walmart order support','Subscriptions tab with in-app unsubscribe and blocking','7 color themes with Light, Dark and Black modes','Backup & restore']],
 ];
