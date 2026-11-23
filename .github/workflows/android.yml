@@ -9,7 +9,7 @@ name: Build Android app
 on:
   push:
     branches: [main]
-    paths: ['src/shell.html', 'android/**', '.github/workflows/android.yml']
+    paths: ['src/shell.html', 'android/**', 'tools/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -73,12 +73,21 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "parcel-finder-${{ steps.ver.outputs.version }}.apk"
           rm -f android/app/release.p12
 
+      - name: Release notes
+        run: python3 tools/release_notes.py "${{ steps.ver.outputs.version }}" > release-notes.md
+
       - name: Publish release
         if: steps.ver.outputs.exists == 'false' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: Parcel Finder ${{ steps.ver.outputs.version }}
-          body: "Install or update with Obtainium (add this GitHub repo as the source), or download the APK below."
+          body_path: release-notes.md
           files: parcel-finder-${{ steps.ver.outputs.version }}.apk
           make_latest: true
+
+      - name: Refresh notes on earlier releases
+        run: |
+          for tag in $(gh release list --limit 50 --json tagName,isDraft --jq '.[] | select(.isDraft==false) | .tagName'); do
+            python3 tools/release_notes.py "${tag#v}" > notes.md && gh release edit "$tag" --notes-file notes.md || true
+          done
