@@ -186,7 +186,9 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
   .catic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;flex:none}
   .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:.2s;z-index:10}
   .scrim.on{opacity:1;pointer-events:auto}
-  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 20px calc(var(--safeB) + 20px);transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 20px calc(var(--safeB) + 20px);transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:0 -10px 40px rgba(0,0,0,.2);max-height:calc(100dvh - var(--safeT) - 40px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  body.sheet-open{overflow:hidden}
+  .sheet .sheet-actions{position:sticky;bottom:calc(-1 * (var(--safeB) + 20px));background:var(--surface);padding:12px 0 calc(var(--safeB) + 20px);margin-bottom:calc(-1 * (var(--safeB) + 20px))}
   .sheet.on{transform:none}
   .sheet .grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
   .sheet h3{margin:0 0 4px;font-size:19px;font-weight:800}
@@ -688,9 +690,10 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 async function copy(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); return true; }catch(e){ toast('Copy blocked — long-press to select'); return false; } }
 
 // ---------- version, updates & backup ----------
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const DATA_VERSION = 2;           // bump when saved data changes shape; add a step to MIGRATIONS
 const CHANGELOG = [
+  ['1.4.1', 'Nov 23, 2026', ['"What\'s new" only lists changes since the version you had before','Pop-up sheets now scroll when they\'re long']],
   ['1.4.0', 'Nov 23, 2026', ['Cleaner color picker with even, solid color circles','Tidier Settings: account list, one-line inbox scan','Subscription filters now match Receipts','Faster: tabs load when opened, smoother search and scrolling']],
   ['1.3.0', 'Nov 23, 2026', ['Phone app: add more than one email account','Phone app: Outlook / Hotmail support (once sign-in is set up)','Packages show which inbox they came from','Android app with updates through Obtainium']],
   ['1.2.0', 'Nov 23, 2026', ['Runs on its own — no Claude needed','Install it to your home screen as an app','Sign in with Google to scan Gmail','Works offline with your saved data']],
@@ -716,15 +719,18 @@ function restoreBackup(code){
   if (raw.app!=='parcel-finder' || !raw.data) throw new Error('bad');
   for (const [k,v] of Object.entries(raw.data)) if (BACKUP_KEYS.includes(k)) localStorage.setItem(k, v);
 }
-function showWhatsNew(){
-  sheet(`<h3>What's new</h3><p>Parcel Finder ${APP_VERSION}</p>` + CHANGELOG.map(([v,d,items])=>
+const verNum = v=>String(v||'0').split('.').reduce((a,x)=>a*1000+(+x||0),0);
+function showWhatsNew(since){
+  const list = since ? CHANGELOG.filter(([v])=>verNum(v) > verNum(since)) : CHANGELOG.slice(0,1);
+  if (!list.length) return;
+  sheet(`<h3>What's new</h3><p>${since ? `Updated from ${esc(since)} to ${APP_VERSION}` : `Parcel Finder ${APP_VERSION}`}</p>` + list.map(([v,d,items])=>
     `<div style="margin:12px 0 4px;font-weight:700">${v} <span style="color:var(--mute);font-weight:500;font-size:12.5px">· ${d}</span></div>
      <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.6">${items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`).join('') +
-    `<button class="btn primary full" style="margin-top:16px" onclick="closeSheet()">Got it</button>`);
+    `<div class="sheet-actions"><button class="btn primary full" onclick="closeSheet()">Got it</button></div>`);
 }
 document.getElementById('verLine').textContent = `Version ${APP_VERSION}`;
 document.getElementById('aboutVer').textContent = `Version ${APP_VERSION} · Your data stays on this device and in your Gmail`;
-document.getElementById('whatsNew').onclick = showWhatsNew;
+document.getElementById('whatsNew').onclick = ()=>showWhatsNew();
 document.getElementById('bkCopy').onclick = ()=>copy(makeBackup()).then(ok=>{ if (ok) toast('Backup code copied — paste it somewhere safe'); });
 document.getElementById('bkRestore').onclick = ()=>{
   const sh = sheet(`<h3>Restore from backup</h3><p>Paste your backup code. This replaces what's on this device.</p>
@@ -738,7 +744,7 @@ document.getElementById('bkRestore').onclick = ()=>{
 // show "What's new" once after an update
 setTimeout(()=>{
   const seen = loadKey('pfSeenVersion', null);
-  if (seen && seen !== APP_VERSION) showWhatsNew();
+  if (seen && verNum(APP_VERSION) > verNum(seen)) showWhatsNew(seen);
   try{ localStorage.setItem('pfSeenVersion', JSON.stringify(APP_VERSION)); }catch(e){}
 }, 400);
 
@@ -865,8 +871,8 @@ function renderSubs(){
   box.appendChild(g);
 }
 
-function sheet(html){ const sh=document.getElementById('sheet'); sh.innerHTML = '<div class="grab"></div>'+html; sh.classList.add('on'); document.getElementById('scrim').classList.add('on'); return sh; }
-function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('scrim').classList.remove('on'); }
+function sheet(html){ const sh=document.getElementById('sheet'); sh.innerHTML = '<div class="grab"></div>'+html; sh.scrollTop = 0; sh.classList.add('on'); document.getElementById('scrim').classList.add('on'); document.body.classList.add('sheet-open'); return sh; }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('scrim').classList.remove('on'); document.body.classList.remove('sheet-open'); }
 document.getElementById('scrim').onclick = closeSheet;
 
 // look in the sender's latest email for an unsubscribe address/link
