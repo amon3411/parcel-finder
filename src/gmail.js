@@ -11,7 +11,7 @@ function payloadOf(r){
 (async ()=>{
   try{ [mcp, sample] = await Promise.all([claude.use('mcp'), claude.use('sample')]); }catch(e){}
   if (mcp){
-    gBtn.disabled = rBtn.disabled = false; document.getElementById('subScan').disabled = false; document.getElementById('rcScan').disabled = false; gStatus.textContent = window.PF ? (PF.isSignedIn() ? 'Signed in as '+(PF.account()||'') : 'Not signed in') : 'Connected';
+    gBtn.disabled = rBtn.disabled = false; document.getElementById('subScan').disabled = false; document.getElementById('rcScan').disabled = false; gStatus.textContent = (()=>{ const t = loadKey('pfLastScan',0); if (window.PF && !PF.isSignedIn()) return 'Add an account above'; return t ? 'Last scan '+new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : 'Not scanned yet'; })();
     // auto-refresh on open if you've scanned before and it's been 30+ min
     const last = loadKey('pfLastScan', 0);
     if (last && Date.now()-last > 30*60e3 && (!window.PF || PF.isSignedIn())) scanGmail(7, true);

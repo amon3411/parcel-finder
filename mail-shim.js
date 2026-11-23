@@ -267,29 +267,24 @@
   // ---------- Settings UI: account list ----------
   const ICON = {gmail:['G','#ea4335','Gmail'], outlook:['O','#0078d4','Outlook']};
   function updateUi(){
-    const box = document.getElementById('gHint'), st = document.getElementById('gStatus');
-    if (st){
-      const live = accounts.filter(ready).length;
-      st.textContent = !accounts.length ? 'No accounts yet' : `${live} of ${accounts.length} account${accounts.length>1?'s':''} connected`;
-    }
-    const title = st && st.parentElement && st.parentElement.querySelector('.t'); if (title) title.textContent = 'Email accounts';
-    const av = st && st.parentElement && st.parentElement.previousElementSibling; if (av && av.classList.contains('avatar')){ av.textContent = '@'; av.style.background = 'var(--brand)'; }
+    const box = document.getElementById('gHint');
     if (!box) return;
-    box.hidden = false; box.style.display = 'block';
+    box.hidden = false; box.style.cssText = 'display:block;padding:4px 14px 12px';
     const esc = s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    box.innerHTML = accounts.map((a,i)=>{
+    const rows = accounts.map((a,i)=>{
       const [l,c,n] = ICON[a.provider]; const ok = ready(a);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0">
-        <div class="avatar" style="background:${c};width:34px;height:34px;border-radius:10px;font-size:13px">${l}</div>
-        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis">${esc(a.email)}</div>
-          <div style="font-size:12px;color:${ok?'var(--ok)':'var(--warn)'}">${n} · ${ok?'Connected':'Tap Reconnect'}</div></div>
-        ${ok?'':`<button class="btn" data-acct="re" data-i="${i}">Reconnect</button>`}
-        <button class="btn danger" data-acct="rm" data-i="${i}" aria-label="Remove">✕</button></div>`;
-    }).join('') +
-    `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      ${G_ID?'<button class="btn primary" data-acct="addG" style="flex:1;justify-content:center">+ Gmail</button>':''}
-      ${MS_ID?'<button class="btn primary" data-acct="addO" style="flex:1;justify-content:center">+ Outlook</button>':'<button class="btn" disabled style="flex:1;justify-content:center" title="Outlook sign-in not set up yet">+ Outlook (soon)</button>'}
-    </div>`;
+      return `<div class="acct">
+        <div class="avatar" style="background:${c}">${l}</div>
+        <div class="acct-t"><div class="acct-e">${esc(a.email)}</div>
+          <div class="acct-s"><span class="dot" style="background:${ok?'var(--ok)':'var(--warn)'}"></span>${n} · ${ok?'Connected':'Signed out'}</div></div>
+        ${ok?'':`<button class="btn sm" data-acct="re" data-i="${i}">Reconnect</button>`}
+        <button class="btn sm icon danger" data-acct="rm" data-i="${i}" aria-label="Remove ${esc(a.email)}">✕</button></div>`;
+    }).join('');
+    box.innerHTML = (rows || '<div class="acct-empty">No email accounts yet — add one to start scanning.</div>') +
+      `<div class="acct-add">
+        ${G_ID?'<button class="btn" data-acct="addG"><span class="avatar mini" style="background:#ea4335">G</span>Add Gmail</button>':''}
+        ${MS_ID?'<button class="btn" data-acct="addO"><span class="avatar mini" style="background:#0078d4">O</span>Add Outlook</button>':'<button class="btn" disabled title="Outlook sign-in isn’t set up yet"><span class="avatar mini" style="background:#0078d4">O</span>Outlook soon</button>'}
+      </div>`;
     box.querySelectorAll('[data-acct]').forEach(b=>b.onclick = ()=>{
       const a = accounts[+b.dataset.i], t = window.toast || (()=>{});
       const fail = e=>t(e && e.code==='denied' ? 'Sign-in cancelled' : 'Couldn’t sign in');
@@ -298,10 +293,22 @@
       if (b.dataset.acct==='re') PF.reconnect(a).then(()=>{ updateUi(); t('Reconnected'); }, fail);
       if (b.dataset.acct==='rm'){
         if (b.dataset.armed){ PF.remove(a); t('Account removed'); }
-        else { b.dataset.armed = 1; b.textContent = 'Remove?'; setTimeout(()=>{ delete b.dataset.armed; b.textContent='✕'; }, 2500); }
+        else { b.dataset.armed = 1; b.textContent = 'Remove?'; b.classList.remove('icon'); setTimeout(()=>{ if (b.isConnected){ delete b.dataset.armed; b.textContent='✕'; b.classList.add('icon'); } }, 2500); }
       }
     });
   }
+  // styles for the account list (kept with the code that draws it)
+  const css = document.createElement('style');
+  css.textContent = `.acct{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+    .acct .avatar{width:36px;height:36px;border-radius:11px;font-size:14px;flex:none}
+    .acct-t{flex:1;min-width:0}.acct-e{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .acct-s{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);margin-top:2px}
+    .acct-s .dot{width:7px;height:7px;border-radius:50%}
+    .btn.icon{width:32px;height:32px;padding:0;justify-content:center}
+    .acct-empty{font-size:13.5px;color:var(--mute);padding:10px 0}
+    .acct-add{display:flex;gap:8px;margin-top:12px}.acct-add .btn{flex:1;justify-content:center}
+    .avatar.mini{width:20px;height:20px;border-radius:6px;font-size:11px;color:#fff;display:inline-grid;place-items:center}`;
+  document.head.appendChild(css);
 
   // Gmail actions while nothing is connected: sign in first (inside the same tap), then continue.
   const GATED = '#refresh,#gScan,#subScan,#rcScan,#ctaScan,[data-a=unsub],[data-a=restore]';

@@ -11,6 +11,7 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
 <meta name="theme-color" content="#0b0d12">
 <title>Parcel Finder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -72,6 +73,7 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
   .sectionlabel{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin:16px 4px 8px}
 
   /* package card */
+  .pkg,.rc,.sub{content-visibility:auto;contain-intrinsic-size:auto 96px}
   .pkg{background:var(--surface);border-radius:18px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s}
   .pkg:active{transform:scale(.99)}
   .pkg .row1{display:flex;gap:12px;align-items:center}
@@ -100,6 +102,7 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
   .kv dt{color:var(--mute)} .kv dd{margin:0;word-break:break-all}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
   .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .btn.sm{padding:7px 11px;font-size:12.5px;border-radius:10px}
   .btn{appearance:none;border:0;border-radius:12px;padding:10px 14px;font-size:13.5px;font-weight:600;background:var(--surface2);text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
   .btn.primary{background:var(--brand);color:#fff}
   .btn.full{width:100%;justify-content:center;padding:13px}
@@ -112,7 +115,7 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
 
   /* lists / settings */
   .group{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
-  .item{display:flex;align-items:center;gap:12px;padding:14px;border-top:1px solid var(--line)}
+  .item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-top:1px solid var(--line);min-height:56px}
   .item:first-child{border-top:0}
   .item .grow{flex:1;min-width:0}
   .item .t{font-weight:600;font-size:14.5px}
@@ -131,7 +134,9 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
   .nav button .pillicon{width:56px;height:30px;border-radius:16px;display:grid;place-items:center;transition:background .2s}
   .nav button.on{color:var(--text)}
   .nav button.on .pillicon{background:var(--brandSoft);color:var(--brand)}
-  .badge{position:absolute;margin:-18px 0 0 22px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px}
+  .nav .pillicon{position:relative}
+  .badge{position:absolute;top:-3px;right:9px;min-width:17px;height:17px;display:grid;place-items:center;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:0 4px;box-shadow:0 0 0 2px var(--surface)}
+  .badge[hidden]{display:none}
 
   .sub .avatar{width:40px;height:40px;border-radius:50%;font-size:15px}
   .sub .cnt{font-size:12px;font-weight:700;background:var(--surface2);border-radius:20px;padding:3px 9px;white-space:nowrap}
@@ -141,11 +146,16 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
   .subrow{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
   .subrow .grow{flex:1} .subrow .t{font-weight:650;font-size:14.5px}
   .sub+.sub{border-top:1px solid var(--line)}
-  #subSeg button{font-size:12.5px;padding:8px 2px}
-  .swatches{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
-  .sw{display:block;width:100%;max-width:40px;margin:0 auto;aspect-ratio:1;padding:0;border-radius:50%;border:0;cursor:pointer;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
-  .sw.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2.5px solid var(--text)}
-  .sw-name{font-size:11px;color:var(--mute);text-align:center;margin-top:4px}
+  .swatches{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .swc{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0}
+  .sw{width:34px;height:34px;flex:none;padding:0;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;
+      box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px transparent;transition:box-shadow .15s,transform .15s}
+  .sw svg{opacity:0;transition:opacity .15s}
+  .sw.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--text)}
+  .sw.on svg{opacity:1}
+  .sw:active{transform:scale(.92)}
+  .sw-name{font-size:10.5px;font-weight:600;color:var(--mute);width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .swc .sw.on + .sw-name{color:var(--text)}
   .preview{border-radius:16px;background:var(--bg);padding:12px;border:1px solid var(--line)}
   .pv-hero{height:58px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand2));padding:10px;display:flex;flex-direction:column;gap:6px}
   .pv-hero span{width:40%;height:7px;border-radius:4px;background:rgba(255,255,255,.55)}
@@ -255,16 +265,16 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
         <div class="stat"><b id="subTop">—</b><span>Most frequent</span></div>
       </div>
     </div>
-    <div class="row" style="display:flex;gap:8px;margin-bottom:12px">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
       <input id="subSearch" class="search" placeholder="Search senders…">
       <button class="btn primary" id="subScan" disabled>Scan</button>
     </div>
-    <div class="seg" id="subSeg">
+    <div class="chips" id="subSeg">
       <button class="on" data-c="all">All</button>
-      <button data-c="CATEGORY_PROMOTIONS">Promos</button>
+      <button data-c="CATEGORY_PROMOTIONS">Promotions</button>
       <button data-c="CATEGORY_UPDATES">Updates</button>
       <button data-c="CATEGORY_SOCIAL">Social</button>
-      <button data-c="blocked">Blocked</button>
+      <button data-c="blocked">🚫 Blocked</button>
     </div>
     <div class="meta" id="subStatus" style="margin:0 4px 10px;font-size:12.5px;color:var(--mute)"></div>
     <div id="subList"></div>
@@ -287,18 +297,12 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
     </div>
     <div class="sectionlabel">Email accounts</div>
     <div class="group">
-      <div class="item">
-        <div class="avatar" style="background:#ea4335;width:38px;height:38px;border-radius:11px">G</div>
-        <div class="grow"><div class="t">Gmail</div><div class="m" id="gStatus">Checking…</div></div>
-        <select id="gRange"><option value="14">2 weeks</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
-      </div>
-      <div class="item"><button class="btn primary full" id="gScan" disabled>Scan inbox</button></div>
       <div class="item" id="gHint" hidden><div class="m">Open Parcel Finder inside the Claude app with Gmail connected to scan your inbox.</div></div>
-    </div>
-    <div class="sectionlabel">Stores</div>
-    <div class="group">
-      <div class="item"><div class="avatar" style="background:#d27b00;width:38px;height:38px;border-radius:11px">AM</div><div class="grow"><div class="t">Amazon</div><div class="m">Read from order emails in Gmail</div></div></div>
-      <div class="item"><div class="avatar" style="background:#0071ce;width:38px;height:38px;border-radius:11px">WM</div><div class="grow"><div class="t">Walmart</div><div class="m">Read from order emails in Gmail</div></div></div>
+      <div class="item">
+        <div class="grow"><div class="t">Scan inbox</div><div class="m" id="gStatus">Checking…</div></div>
+        <select id="gRange" aria-label="How far back to scan"><option value="14">2 weeks</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
+        <button class="btn primary" id="gScan" disabled>Scan</button>
+      </div>
     </div>
     <div class="sectionlabel">Data</div>
     <div class="group">
@@ -322,7 +326,7 @@ try{ var T = JSON.parse(localStorage.getItem('pfTheme')||'{}'); }catch(e){ var T
 </main>
 
 <nav class="nav"><div class="in">
-  <button class="on" data-v="home"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg></span>Deliveries<span class="badge" id="navBadge" hidden></span></button>
+  <button class="on" data-v="home"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg><span class="badge" id="navBadge" hidden></span></span>Deliveries</button>
   <button data-v="rcpt"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span>Receipts</button>
   <button data-v="subs"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H5.2L4 17.5z"/><path d="M8 8h8M8 12h5"/></svg></span>Subscriptions</button>
   <button data-v="acct"><span class="pillicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>Settings</button>
@@ -455,9 +459,10 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 async function copy(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); return true; }catch(e){ toast('Copy blocked — long-press to select'); return false; } }
 
 // ---------- version, updates & backup ----------
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const DATA_VERSION = 2;           // bump when saved data changes shape; add a step to MIGRATIONS
 const CHANGELOG = [
+  ['1.4.0', 'Nov 23, 2026', ['Cleaner color picker with even, solid color circles','Tidier Settings: account list, one-line inbox scan','Subscription filters now match Receipts','Faster: tabs load when opened, smoother search and scrolling']],
   ['1.3.0', 'Nov 23, 2026', ['Phone app: add more than one email account','Phone app: Outlook / Hotmail support (once sign-in is set up)','Packages show which inbox they came from','Android app with updates through Obtainium']],
   ['1.2.0', 'Nov 23, 2026', ['Runs on its own — no Claude needed','Install it to your home screen as an app','Sign in with Google to scan Gmail','Works offline with your saved data']],
   ['1.1.0', 'Nov 23, 2026', ['New Receipts tab: finds receipts and completed orders in Gmail','Monthly spending totals, categories and search','Copy receipts as a spreadsheet','Add button moved to the top bar']],
@@ -509,7 +514,7 @@ setTimeout(()=>{
 }, 400);
 
 // ---------- themes ----------
-const ACCENTS = [['indigo','Indigo','#4f6bff','#7a5cff'],['ocean','Ocean','#0284c7','#06b6d4'],['forest','Forest','#059669','#84cc16'],['sunset','Sunset','#ea580c','#e11d48'],['rose','Rose','#db2777','#a855f7'],['gold','Gold','#b45309','#eab308'],['graphite','Graphite','#334155','#64748b']];
+const ACCENTS = [['indigo','Indigo','#4f6bff','#7a5cff'],['ocean','Ocean','#0284c7','#06b6d4'],['forest','Forest','#059669','#84cc16'],['sunset','Sunset','#ea580c','#e11d48'],['rose','Rose','#db2777','#a855f7'],['gold','Gold','#b45309','#eab308'],['graphite','Slate','#64748b','#94a3b8']];
 let theme = Object.assign({mode:'auto', accent:'indigo'}, (typeof T==='object' && T) || {});
 const mq = matchMedia('(prefers-color-scheme: dark)');
 function applyTheme(){
@@ -521,7 +526,8 @@ function applyTheme(){
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.m===theme.mode));
   try{ localStorage.setItem('pfTheme', JSON.stringify(theme)); }catch(e){}
 }
-document.getElementById('swatches').innerHTML = ACCENTS.map(([k,n,a,b])=>`<div><button class="sw" data-a="${k}" aria-label="${n}" style="background:linear-gradient(135deg,${a},${b})"></button><div class="sw-name">${n}</div></div>`).join('');
+const CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+document.getElementById('swatches').innerHTML = ACCENTS.map(([k,n,a])=>`<div class="swc"><button class="sw" data-a="${k}" aria-label="${n}" style="background:${a}">${CHECK}</button><div class="sw-name">${n}</div></div>`).join('');
 document.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{ theme.accent=b.dataset.a; applyTheme(); });
 document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{ theme.mode=b.dataset.m; applyTheme(); });
 mq.addEventListener && mq.addEventListener('change', ()=>{ if (theme.mode==='auto') applyTheme(); });
@@ -529,7 +535,9 @@ applyTheme();
 
 const SUBTITLE = {home:null, add:'Add from an email', rcpt:'Receipts', subs:'Email subscriptions', acct:'Settings'};
 document.getElementById('addBtn').onclick = ()=>go('add');
+const VIEW_RENDER = {rcpt:()=>renderReceipts(), subs:()=>renderSubs()};
 function go(v){
+  if (VIEW_RENDER[v]) VIEW_RENDER[v]();
   const lr = document.getElementById('lastRefresh');
   if (SUBTITLE[v]) lr.textContent = SUBTITLE[v]; else if (typeof showLast==='function') showLast();
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on', x.id==='v-'+v));
@@ -768,9 +776,9 @@ async function scanSubs(){
   btn.disabled = false; btn.textContent = 'Scan'; setProgress(0);
 }
 document.getElementById('subScan').onclick = scanSubs;
-document.getElementById('subSearch').oninput = renderSubs;
+const debounce = (f,ms=150)=>{ let t; return ()=>{ clearTimeout(t); t = setTimeout(f, ms); }; };
+document.getElementById('subSearch').oninput = debounce(()=>renderSubs());
 document.querySelectorAll('#subSeg button').forEach(b=>b.onclick=()=>{ subCat=b.dataset.c; document.querySelectorAll('#subSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderSubs(); });
-renderSubs();
 
 // ---------- Receipts ----------
 let receipts = loadKey('pfReceipts', []);   // {id, merchant, date, total, currency, order, items, category, link, subject, from}
@@ -916,13 +924,12 @@ async function scanReceipts(){
   btn.disabled = false; btn.textContent = 'Scan'; document.body.classList.remove('syncing'); setProgress(0);
 }
 document.getElementById('rcScan').onclick = scanReceipts;
-document.getElementById('rcSearch').oninput = renderReceipts;
+document.getElementById('rcSearch').oninput = debounce(()=>renderReceipts());
 document.getElementById('rcCopy').onclick = ()=>{
   if (!receipts.length) return toast('No receipts to copy');
   const rows = [['Date','Store','Total','Category','Order','Items']].concat([...receipts].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>[r.date,r.merchant,r.total!=null?(+r.total).toFixed(2):'',r.category,r.order||'',r.items||'']));
   copy(rows.map(r=>r.map(c=>String(c).replace(/\t|\n/g,' ')).join('\t')).join('\n')).then(ok=>{ if (ok) toast('Copied — paste into Google Sheets or Excel'); });
 };
-renderReceipts();
 
 // ---------- Gmail via connector ----------
 /*GMAIL*/
