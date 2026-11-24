@@ -1,19 +1,17 @@
-/* Parcel Finder — standalone mail connection (multiple accounts).
-   Gmail via Google sign-in + Gmail API; Outlook/Hotmail via Microsoft sign-in + Microsoft Graph.
+/* Parcel Finder — standalone mail connection (multiple Gmail accounts).
+   Gmail via Google sign-in + Gmail API.
    Exposes the same callTool('Gmail', tool, input) interface the app already uses, so every
    feature (deliveries, receipts, subscriptions, unsubscribe) works across all accounts.
    Item ids are prefixed "<accountId>~<id>" so each action goes to the right mailbox. */
 (function(){
   const CFG = window.PF_CONFIG || {};
   const G_ID = CFG.clientId || '';
-  const MS_ID = CFG.microsoftClientId || '';
   const G_SCOPE = 'https://www.googleapis.com/auth/gmail.modify';
-  const MS_SCOPES = ['Mail.ReadWrite', 'Mail.Send', 'User.Read'];
   const SITE = location.origin + location.pathname.replace(/[^/]*$/, '');
 
   // ---------- account store ----------
-  // {id, provider:'gmail'|'outlook', email, token, exp, homeAccountId}
-  let accounts = load();
+  // {id, provider:'gmail', email, token, exp}
+  let accounts = load().filter(a=>a.provider==='gmail');
   function load(){
     try{
       const a = JSON.parse(localStorage.getItem('pfAccounts')||'null');
@@ -103,46 +101,9 @@
     });
   }
 
-  // ---------- Microsoft ----------
-  let msalApp = null, msalReady = null;
-  function loadMsal(){
-    if (msalReady) return msalReady;
-    msalReady = loadScript('vendor/msal-browser.min.js').then(async ()=>{
-      msalApp = new window.msal.PublicClientApplication({auth:{clientId:MS_ID, authority:'https://login.microsoftonline.com/common', redirectUri:SITE}, cache:{cacheLocation:'localStorage'}});
-      await msalApp.initialize();
-      try{ await msalApp.handleRedirectPromise(); }catch(e){}
-    });
-    return msalReady;
-  }
-  if (MS_ID) loadMsal().then(()=>Promise.all(accounts.filter(a=>a.provider==='outlook').map(a=>outlookToken(a).catch(()=>{})))).then(()=>updateUi && updateUi()).catch(()=>{});
-
-  async function outlookSignIn(){
-    if (!MS_ID) throw {code:'not_configured'};
-    await loadMsal();
-    const r = await msalApp.loginPopup({scopes:MS_SCOPES, prompt:'select_account'});
-    const email = (r.account.username||'').toLowerCase();
-    let a = accounts.find(x=>x.provider==='outlook' && x.email===email);
-    if (!a){ a = {id: nextId('outlook'), provider:'outlook', email}; accounts.push(a); }
-    a.homeAccountId = r.account.homeAccountId; a.token = r.accessToken; a.exp = r.expiresOn ? +new Date(r.expiresOn) : Date.now()+3600e3;
-    save(); updateUi(); return a;
-  }
-  async function outlookToken(a, interactive){
-    if (gValid(a)) return a.token;
-    await loadMsal();
-    const account = msalApp.getAccountByHomeId(a.homeAccountId);
-    try{
-      const r = await msalApp.acquireTokenSilent({scopes:MS_SCOPES, account});
-      a.token = r.accessToken; a.exp = +new Date(r.expiresOn); save(); return a.token;
-    }catch(e){
-      if (!interactive) throw {code:'not_connected'};
-      const r = await msalApp.acquireTokenPopup({scopes:MS_SCOPES, account});
-      a.token = r.accessToken; a.exp = +new Date(r.expiresOn); save(); return a.token;
-    }
-  }
-
   // ---------- HTTP ----------
   async function call(a, url, opts={}){
-    let token = a.provider==='gmail' ? (gValid(a) ? a.token : null) : await outlookToken(a).catch(()=>null);
+    const token = gValid(a) ? a.token : null;
     if (!token) throw {code:'not_connected', account:a.email};
     const r = await fetch(url, {...opts, headers:{Authorization:'Bearer '+token, 'Content-Type':'application/json', ...(opts.headers||{})}});
     if (r.status === 401){ a.exp = 0; save(); updateUi(); throw {code:'not_connected', account:a.email}; }
@@ -211,57 +172,8 @@
     }
   };
 
-  // ---------- Outlook provider (Microsoft Graph) ----------
-  const MAPI = 'https://graph.microsoft.com/v1.0/me';
-  // Translate the Gmail-style queries the app uses into Outlook search (KQL)
-  function toKql(q){
-    let since = null;
-    q = q.replace(/newer_than:(\d+)([dmy])/g, (m,n,u)=>{ const d = new Date(); d.setDate(d.getDate() - n*(u==='y'?365:u==='m'?30:1)); since = d.toISOString().slice(0,10); return ''; });
-    q = q.replace(/from:\(([^)]*)\)/g, (m,list)=>'(' + list.split(/\s+OR\s+/).map(x=>'from:'+x.trim()).join(' OR ') + ')');
-    q = q.replace(/-?(in|category|list|label|is|has):\S+/g, '');
-    for (let i=0;i<4;i++) q = q.replace(/\(\s*(OR\s+)+/g,'(').replace(/(\s+OR)+\s*\)/g,')').replace(/\bOR\s+(OR\s+)+/g,'OR ').replace(/\(\s*\)/g,'');
-    q = q.replace(/\s+/g,' ').trim();
-    const parts = []; if (q) parts.push(q); if (since) parts.push(`received>=${since}`);
-    return parts.join(' AND ');
-  }
-  function oMap(a, m, full, withHtml){
-    const f = (m.from && m.from.emailAddress) || {};
-    const html = m.body && m.body.contentType === 'html' ? m.body.content : '';
-    const o = {id:`${a.id}~${m.id}`, threadId:`${a.id}~${m.id}`, subject:m.subject||'', sender:(f.address||'').toLowerCase(), snippet:m.bodyPreview||'',
-      date:m.receivedDateTime, labelIds:[m.inferenceClassification==='other'?'CATEGORY_PROMOTIONS':'CATEGORY_UPDATES'],
-      addressDisplayNames:[{emailAddress:(f.address||'').toLowerCase(), displayName:f.name||''}], viewUrl:m.webLink||'https://outlook.live.com/mail/', account:a.email};
-    if (full){ o.plaintextBody = html ? htmlToText(html) : (m.body && m.body.content) || m.bodyPreview || ''; if (withHtml) o.htmlBody = html; }
-    return o;
-  }
-  const SEL = 'id,subject,from,receivedDateTime,bodyPreview,webLink,inferenceClassification';
-  const outlook = {
-    async search(a, {query, pageSize, pageToken, view}){
-      const url = pageToken || `${MAPI}/messages?$search=${encodeURIComponent('"'+toKql(query||'').replace(/"/g,'\\"')+'"')}&$top=${pageSize||20}&$select=${SEL}`;
-      const r = await call(a, url);
-      const msgs = (r.value||[]).map(m=>oMap(a, m, false));
-      return {threads: msgs.map(m=>view==='THREAD_VIEW_IDS_ONLY' ? {id:m.threadId} : {id:m.threadId, messageCount:1, viewUrl:m.viewUrl, messages:[m]}), next:r['@odata.nextLink']};
-    },
-    async thread(a, id, fmt){
-      const m = await call(a, `${MAPI}/messages/${id}?$select=${SEL},body`, fmt==='FULL_CONTENT' ? {} : {headers:{Prefer:'outlook.body-content-type="html"'}});
-      const o = oMap(a, m, fmt!=='MINIMAL' && fmt!=='METADATA_ONLY', fmt==='FULL_CONTENT');
-      return {id:o.threadId, viewUrl:o.viewUrl, messageCount:1, messages:[o]};
-    },
-    async trash(a, id){
-      const r = await call(a, `${MAPI}/messages/${id}/move`, {method:'POST', body:JSON.stringify({destinationId:'deleteditems'})});
-      moved[`${a.id}~${id}`] = r.id; saveMoved(); return {};
-    },
-    async untrash(a, id){
-      const cur = moved[`${a.id}~${id}`] || id;
-      await call(a, `${MAPI}/messages/${cur}/move`, {method:'POST', body:JSON.stringify({destinationId:'inbox'})});
-      delete moved[`${a.id}~${id}`]; saveMoved(); return {};
-    },
-    send: (a, {to=[], subject='', body=''})=>call(a, `${MAPI}/sendMail`, {method:'POST', body:JSON.stringify({message:{subject, body:{contentType:'Text', content:body}, toRecipients:to.map(x=>({emailAddress:{address:x}}))}, saveToSentItems:true})})
-  };
-  let moved = (()=>{ try{ return JSON.parse(localStorage.getItem('pfMoved')||'{}'); }catch(e){ return {}; } })();
-  function saveMoved(){ try{ localStorage.setItem('pfMoved', JSON.stringify(moved)); }catch(e){} }
-
-  const P = {gmail, outlook};
-  const ready = a => a.provider==='gmail' ? gValid(a) : !!a.homeAccountId;
+  const P = {gmail};
+  const ready = a => gValid(a);
   function split(pid){ const i = String(pid).indexOf('~'); const a = byId(pid.slice(0,i)); if (!a) throw {code:'tool_error', message:'Account removed'}; return [a, pid.slice(i+1)]; }
 
   // ---------- the app-facing tools ----------
@@ -298,23 +210,22 @@
   window.claude = { use: async (name)=> name === 'mcp' ? bridge : null };
   window.PF = {
     reconnecting: ()=>hopping,
-    configured: !!(G_ID || MS_ID),
+    configured: !!G_ID,
     isSignedIn: ()=> accounts.some(ready),
     account: ()=> accounts.filter(ready).map(a=>a.email).join(', '),
     accounts: ()=> accounts.slice(),
     needsReconnect: ()=> accounts.filter(a=>a.provider==='gmail' && !gValid(a)),
-    addGmail: ()=>googleSignIn(null), addOutlook: outlookSignIn,
-    reconnect: (a)=> a.provider==='gmail' ? googleSignIn(a) : outlookToken(a, true),
+    addGmail: ()=>googleSignIn(null),
+    reconnect: (a)=> googleSignIn(a),
     remove(a){
       if (a.provider==='gmail' && a.token && window.google) try{ google.accounts.oauth2.revoke(a.token, ()=>{}); }catch(e){}
-      if (a.provider==='outlook' && msalApp){ try{ const acc = msalApp.getAccountByHomeId(a.homeAccountId); acc && msalApp.clearCache({account:acc}); }catch(e){} }
       accounts = accounts.filter(x=>x!==a); save(); updateUi();
     },
     signIn: ()=>googleSignIn(null)
   };
 
   // ---------- Settings UI: account list ----------
-  const ICON = {gmail:['G','#ea4335','Gmail'], outlook:['O','#0078d4','Outlook']};
+  const ICON = {gmail:['G','#ea4335','Gmail']};
   function updateUi(){
     const box = document.getElementById('gHint');
     if (!box) return;
@@ -332,13 +243,11 @@
     box.innerHTML = (rows || '<div class="acct-empty">No email accounts yet — add one to start scanning.</div>') +
       `<div class="acct-add">
         ${G_ID?'<button class="btn" data-acct="addG"><span class="avatar mini" style="background:#ea4335">G</span>Add Gmail</button>':''}
-        ${MS_ID?'<button class="btn" data-acct="addO"><span class="avatar mini" style="background:#0078d4">O</span>Add Outlook</button>':'<button class="btn" disabled title="Outlook sign-in isn’t set up yet"><span class="avatar mini" style="background:#0078d4">O</span>Outlook soon</button>'}
       </div>`;
     box.querySelectorAll('[data-acct]').forEach(b=>b.onclick = ()=>{
       const a = accounts[+b.dataset.i], t = window.toast || (()=>{});
       const fail = e=>t(e && e.code==='denied' ? 'Sign-in cancelled' : 'Couldn’t sign in');
       if (b.dataset.acct==='addG') googleSignIn(null).then(x=>t(`Added ${x.email}`), fail);
-      if (b.dataset.acct==='addO') outlookSignIn().then(x=>t(`Added ${x.email}`), fail);
       if (b.dataset.acct==='re') PF.reconnect(a).then(()=>{ updateUi(); t('Reconnected'); }, fail);
       if (b.dataset.acct==='rm'){
         if (b.dataset.armed){ PF.remove(a); t('Account removed'); }
@@ -367,9 +276,8 @@
     const t = window.toast || (()=>{});
     if (!accounts.length){
       e.preventDefault(); e.stopImmediatePropagation();
-      if (!G_ID && !MS_ID) return t('Sign-in isn’t set up yet');
-      if (G_ID) googleSignIn(null).then(()=>el.click(), ()=>t('Sign-in cancelled'));
-      else { typeof go==='function' && go('acct'); t('Add an email account first'); }
+      if (!G_ID) return t('Sign-in isn’t set up yet');
+      googleSignIn(null).then(()=>el.click(), ()=>t('Sign-in cancelled'));
       return;
     }
     // One expired Gmail account can be refreshed per tap (Google needs a tap for each popup)

@@ -9,7 +9,7 @@ ver = sys.argv[1]
 date, items = entries.get(ver, ('', []))
 print(f"""**Parcel Finder {ver}**{f' · {date}' if date else ''}
 
-Parcel Finder reads your Gmail (and Outlook) to track packages, collect receipts and clean up email subscriptions — all on your phone.
+Parcel Finder reads your Gmail to track packages, collect receipts and clean up email subscriptions — all on your phone.
 
 ### What's new
 """ + '\n'.join(f'- {i}' for i in items) + """

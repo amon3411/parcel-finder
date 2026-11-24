@@ -2,7 +2,7 @@
 
 **Track every package, receipt and email subscription — straight from your inbox.**
 
-Parcel Finder reads your shipping, order and receipt emails from Gmail (and Outlook) and turns them into a clean phone app: where each package is and when it arrives, what you've spent this month, and which senders flood your inbox — with one-tap unsubscribe.
+Parcel Finder reads your shipping, order and receipt emails from Gmail and turns them into a clean phone app: where each package is and when it arrives, what you've spent this month, and which senders flood your inbox — with one-tap unsubscribe.
 
 <p>
   <img src="docs/screenshots/deliveries.png" width="200" alt="Deliveries">
@@ -31,7 +31,7 @@ Parcel Finder reads your shipping, order and receipt emails from Gmail (and Outl
 - Blocked senders are cleaned out automatically on every refresh
 
 **🎨 And more**
-- Multiple email accounts (Gmail and Outlook / Hotmail)
+- Multiple Gmail accounts
 - 7 color themes with Light, Dark and Black (OLED) modes
 - Works offline with your saved data; backup & restore
 - Your data stays on your phone and in your own mailbox — no server
@@ -49,7 +49,7 @@ Then open **Settings → Email accounts** and sign in. Google will warn that the
 ## How it works
 
 - `src/` — the app source: `shell.html` (screens), `logic.js` (tracking/receipt detection), `gmail.js` (scanning)
-- `mail-shim.js` — connects to Gmail (Google sign-in + Gmail API) and Outlook (Microsoft sign-in + Microsoft Graph), with multiple accounts
+- `mail-shim.js` — connects to Gmail (Google sign-in + Gmail API), with multiple accounts and automatic reconnect
 - `config.js` — sign-in client IDs (not secrets; they only work from this site's address)
 - `python3 src/build.py` — builds `index.html` (web/phone app) and `claude/index.html` (Claude version)
 - `android/` — Android app (Trusted Web Activity) that opens the web app full-screen
