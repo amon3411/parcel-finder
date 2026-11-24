@@ -34,6 +34,54 @@
   function loadGis(){ return gisReady || (gisReady = loadScript('https://accounts.google.com/gsi/client')); }
   if (G_ID) loadGis().catch(()=>{});
 
+  // ---------- automatic Gmail reconnect ----------
+  // Google's 1-hour access tokens can't be refreshed in the background without a server, so when the
+  // app opens (or comes back to the screen) with an expired Gmail account, it does a quick full-page
+  // hop to Google with prompt=none. If you're still signed in to Google on this phone, Google sends a
+  // fresh token straight back with no screens to tap. One hop per expired account.
+  const REDIRECT = SITE;
+  const TRIED = 'pfSilentTried';
+  function tried(){ try{ return JSON.parse(sessionStorage.getItem(TRIED)||'{}'); }catch(e){ return {}; } }
+  function markTried(id, ok){ const t = tried(); t[id] = {at:Date.now(), ok}; try{ sessionStorage.setItem(TRIED, JSON.stringify(t)); }catch(e){} }
+  // 1) Coming back from Google? Pick the token out of the address and tidy the address bar.
+  (function catchRedirect(){
+    const h = new URLSearchParams(location.hash.slice(1));
+    const st = h.get('state') || '';
+    if (!st.startsWith('pfsilent.')) return;
+    const [, id, nonce] = st.split('.');
+    const expect = sessionStorage.getItem('pfSilentNonce');
+    sessionStorage.removeItem('pfSilentNonce');
+    history.replaceState(null, '', location.pathname + location.search);
+    const a = byId(id);
+    if (!a || nonce !== expect) return;
+    if (h.get('access_token')){
+      a.token = h.get('access_token'); a.exp = Date.now() + (+h.get('expires_in')||3600)*1000; save(); markTried(id, true);
+    } else markTried(id, false);   // Google needs a tap (signed out of Google, etc.) — show Reconnect instead
+  })();
+  // 2) Any Gmail account still expired that we haven't just tried? Hop to Google for it.
+  function silentRefresh(){
+    if (!G_ID || document.visibilityState === 'hidden') return false;
+    if (document.body && (document.body.classList.contains('syncing') || document.body.classList.contains('sheet-open'))) return false;   // never interrupt a scan or an open sheet
+    const t = tried(), now = Date.now();
+    const a = accounts.find(x=>x.provider==='gmail' && x.email && !(x.token && x.exp > now + 5*60e3) && !(t[x.id] && now - t[x.id].at < 10*60e3));
+    if (!a) return false;
+    const nonce = Math.random().toString(36).slice(2);
+    sessionStorage.setItem('pfSilentNonce', nonce); markTried(a.id, null);
+    const q = new URLSearchParams({client_id:G_ID, redirect_uri:REDIRECT, response_type:'token', scope:G_SCOPE,
+      include_granted_scopes:'true', prompt:'none', login_hint:a.email, state:`pfsilent.${a.id}.${nonce}`});
+    document.documentElement.classList.add('pf-reconnecting');
+    location.replace('https://accounts.google.com/o/oauth2/v2/auth?' + q);
+    return true;
+  }
+  const hopping = silentRefresh();   // on open
+  // Back to the app after a while (Google tokens last an hour): reconnect again if needed
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'visible') silentRefresh(); });
+  // Small "Reconnecting…" cover while hopping, so the app doesn't flash
+  const rc = document.createElement('style');
+  rc.textContent = `html.pf-reconnecting body>*{visibility:hidden}
+    html.pf-reconnecting body::after{content:"Reconnecting your email…";position:fixed;inset:0;display:grid;place-items:center;font:600 15px Inter,system-ui,sans-serif;color:#8d93a5;background:var(--bg,#0b0d12)}`;
+  document.head.appendChild(rc);
+
   // Must run inside a tap (Google opens a popup)
   function googleSignIn(acct){
     return new Promise((resolve, reject)=>{
@@ -66,7 +114,7 @@
     });
     return msalReady;
   }
-  if (MS_ID) loadMsal().catch(()=>{});
+  if (MS_ID) loadMsal().then(()=>Promise.all(accounts.filter(a=>a.provider==='outlook').map(a=>outlookToken(a).catch(()=>{})))).then(()=>updateUi && updateUi()).catch(()=>{});
 
   async function outlookSignIn(){
     if (!MS_ID) throw {code:'not_configured'};
@@ -249,6 +297,7 @@
 
   window.claude = { use: async (name)=> name === 'mcp' ? bridge : null };
   window.PF = {
+    reconnecting: ()=>hopping,
     configured: !!(G_ID || MS_ID),
     isSignedIn: ()=> accounts.some(ready),
     account: ()=> accounts.filter(ready).map(a=>a.email).join(', '),

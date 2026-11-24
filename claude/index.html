@@ -699,9 +699,10 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 async function copy(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); return true; }catch(e){ toast('Copy blocked — long-press to select'); return false; } }
 
 // ---------- version, updates & backup ----------
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.6.0';
 const DATA_VERSION = 2;           // bump when saved data changes shape; add a step to MIGRATIONS
 const CHANGELOG = [
+  ['1.6.0', 'Nov 24, 2026', ['Email accounts reconnect on their own when you open the app — no more tapping Reconnect','Accounts also reconnect when you come back to the app after a while']],
   ['1.5.1', 'Nov 23, 2026', ['Any Gmail account can now be added — no approval step needed','Privacy policy added (Settings → About)']],
   ['1.5.0', 'Nov 23, 2026', ['Import your full Amazon order history into Receipts','Big receipt lists load in pages with "Show more"']],
   ['1.4.1', 'Nov 23, 2026', ['"What\'s new" only lists changes since the version you had before','Pop-up sheets now scroll when they\'re long']],
